@@ -391,6 +391,8 @@ class Base:
 			('Full Screen Key', None, '', '<Shift>Return', None, self.enter_fullscreen),
 			('Prev', None, '', 'Up', _('Previous Image'), self.goto_prev_image),
 			('Next', None, '', 'Down', _('Next Image'), self.goto_next_image),
+			('PgUp', None, '', 'Page_Up', _('Previous Image'), self.goto_prev_image),
+			('PgDn', None, '', 'Page_Down', _('Next Image'), self.goto_next_image),
 			('BackSpace', None, '', 'BackSpace', _('Previous Image'), self.goto_prev_image),
 			('OriginalSize', None, '', '1', _('1:1'), self.zoom_1_to_1_action),
 			('ZoomIn', None, '', 'KP_Add', _('Zoom In'), self.zoom_in),
@@ -505,6 +507,8 @@ class Base:
 			      <menuitem action="Full Screen Key"/>
 			      <menuitem action="Prev"/>
 			      <menuitem action="Next"/>
+			      <menuitem action="PgUp"/>
+			      <menuitem action="PgDn"/>
 			      <menuitem action="OriginalSize"/>	
 			      <menuitem action="BackSpace"/>
 			      <menuitem action="ZoomIn"/>
@@ -802,7 +806,7 @@ class Base:
 			      <menu action="ActionSubMenu">
 			"""
 		for i in range(len(self.action_names)):
-			uiDescription = uiDescription + """<menuitem action=\"""" + self.action_names[len(self.action_names)-i-1] + """\" position="top"/>"""
+			uiDescription = uiDescription + """<menuitem action=\"""" + self.action_names[len(self.action_names)-i-1].replace('&','&amp;') + """\" position="top"/>"""
 		uiDescription = uiDescription + """</menu></menu></menubar></ui>"""
 		self.merge_id = self.UIManager.add_ui_from_string(uiDescription)
 		self.UIManager.insert_action_group(self.actionGroupCustom, 0)
@@ -1206,11 +1210,9 @@ class Base:
 		if cmd[-6:] == "[NEXT]":
 			prev_or_next=1
 			cmd = cmd[:-6]
-			print "found next"
 		elif cmd[-6:] == "[PREV]":
 			prev_or_next=-1
 			cmd = cmd[:-6]
-			print "found prev"
 		if "%F" in cmd:
 			cmd = cmd.replace("%F", sh_esc(imagename))
 		if "%N" in cmd:
@@ -1641,7 +1643,7 @@ class Base:
 			if filetype == None:
 				filetype = gtk.gdk.pixbuf_get_file_info(self.currimg_name)[0]['name']
 			if self.filetype_is_writable(filetype):
-				self.currimg_pixbuf_original.save(dest_name, filetype, {'quality': self.save_quality})
+				self.currimg_pixbuf_original.save(dest_name, filetype, {'quality': str(self.quality_save)})
 				self.currimg_name = dest_name
 				self.image_list[self.curr_img_in_list] = dest_name
 				self.update_title()
@@ -2242,7 +2244,7 @@ class Base:
 				pb = gtk.STOCK_APPLY
 			else:
 				pb = None
-			self.actionstore.append([pb, '<big><b>' + self.action_names[i] + '</b></big>\n<small>' + self.action_commands[i] + '</small>', self.action_shortcuts[i]])
+			self.actionstore.append([pb, '<big><b>' + self.action_names[i].replace('&','&amp;') + '</b></big>\n<small>' + self.action_commands[i].replace('&','&amp;') + '</small>', self.action_shortcuts[i]])
 		self.tvcolumn0.clear()
 		self.tvcolumn1.clear()
 		self.tvcolumn2.clear()
