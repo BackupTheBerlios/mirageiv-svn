@@ -1,3 +1,12 @@
+v0.9.5 - Future
+	+ Added a windows icon
+	+ Added new shortcuts PgUP/PgDN for previous/next image
+	+ Bug: & in custom actions caused an error when mirage tried to open custom
+		action dialog (bug #17329)
+	+ Bug: Save image didn't work. (bug #17330)
+	+ Changes: now uses $XDG_CONFIG_HOME/mirage as config directory if possible
+		(patch taken from debian)
+
 v0.9.4 - June 26, 2010
 	+ Mirage now requires PyGTK 2.12.0
 	+ Added the ability to set the quality for saving images

@@ -209,13 +209,14 @@ class Base:
 					self.print_usage()
 					sys.exit(2)
 
+
+		# Determine config dir, first try the environment variable XDG_CONFIG_HOME
+		# according to XDG specification and as a fallback use ~/.config/mirage
+		self.config_dir = (os.getenv('XDG_CONFIG_HOME') or os.path.expanduser('~/.config')) + '/mirage'
 		# Load config from disk:
 		conf = ConfigParser.ConfigParser()
-		if os.path.isfile(os.path.expanduser('~/.config/mirage/miragerc')):
-			conf.read(os.path.expanduser('~/.config/mirage/miragerc'))
-		elif os.path.isfile(os.path.expanduser('~/.miragerc')):
-			conf.read(os.path.expanduser('~/.miragerc'))
-			os.remove(os.path.expanduser('~/.miragerc'))
+		if os.path.isfile(self.config_dir + '/miragerc'):
+			conf.read(self.config_dir + '/miragerc')
 		if conf.has_option('window', 'w'):
 			width = conf.getint('window', 'w')
 		if conf.has_option('window', 'h'):
@@ -306,8 +307,8 @@ class Base:
 		self.curr_slideshow_random = self.slideshow_random
 
 		# Read accel_map file, if it exists
-		if os.path.isfile(os.path.expanduser('~/.config/mirage/accel_map')):
-			gtk.accel_map_load(os.path.expanduser('~/.config/mirage/accel_map'))
+		if os.path.isfile(self.config_dir + '/accel_map'):
+			gtk.accel_map_load(self.config_dir + '/accel_map')
 			
 		self.blank_image = gtk.gdk.pixbuf_new_from_file(self.find_path("mirage_blank.png"))
 
@@ -1500,14 +1501,12 @@ class Base:
 		for i in range(len(self.recentfiles)):
 			conf.set('recent', 'num[' + str(i) + ']', len(self.recentfiles[i]))
 			conf.set('recent', 'urls[' + str(i) + ',0]', self.recentfiles[i])
-		if not os.path.exists(os.path.expanduser('~/.config/')):
-			os.mkdir(os.path.expanduser('~/.config/'))
-		if not os.path.exists(os.path.expanduser('~/.config/mirage/')):
-			os.mkdir(os.path.expanduser('~/.config/mirage/'))
-		conf.write(file(os.path.expanduser('~/.config/mirage/miragerc'), 'w'))
+		if not os.path.exists(self.config_dir):
+			os.makedirs(self.config_dir)
+		conf.write(file(self.config_dir + '/miragerc', 'w'))
 
 		# Also, save accel_map:
-		gtk.accel_map_save(os.path.expanduser('~/.config/mirage/accel_map'))
+		gtk.accel_map_save(self.config_dir + '/accel_map')
 
 		return
 
