@@ -72,14 +72,11 @@ class Base:
 	def __init__(self):
 		
 		gtk.gdk.threads_init()
-		try:
-			t = gettext.translation('mirage', '/usr/share/locale')
-		except:
-			try:
-				t = gettext.translation('mirage', '/usr/local/share/locale')
-			except:
-				print "Couldn't find translations"
-		t.install(unicode=1)
+		
+		# FIX THIS! Does not work on windows and what happens if mo-files exists
+		# in both dirs?
+		gettext.install('mirage', '/usr/share/locale', unicode=1)
+		gettext.install('mirage', '/usr/local/share/locale', unicode=1)
 
 		# Constants
 		self.open_mode_smart = 0
