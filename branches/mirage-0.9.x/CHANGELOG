@@ -1,3 +1,7 @@
+v0.9.5.1 - July 23, 2010
+	+ Bug: Mirage showed verbose output by default
+	+ Bug: Misplaced comma in Open Remote Image dialog
+
 v0.9.5 - July 20, 2010
 	+ Added a windows icon
 	+ Added new shortcuts PgUP/PgDN for previous/next image
