@@ -2339,7 +2339,7 @@ class Base:
 			dialog.destroy()
 			while gtk.events_pending():
 				gtk.main_iteration()
-			self.screenshot_delay = int(delay.get_text())
+			self.screenshot_delay = delay.get_value_as_int()
 			gobject.timeout_add(int(self.screenshot_delay*1000), self._screenshot_grab, area1.get_active())
 		else:
 			dialog.destroy()
