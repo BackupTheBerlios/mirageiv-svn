@@ -32,7 +32,7 @@ def rmgeneric(path, __func__):
 # Create mo files:
 if not os.path.exists("mo/"):
 	os.mkdir("mo/")
-for lang in ('it', 'de', 'pl', 'es', 'fr', 'ru', 'hu', 'cs', 'pt_BR', 'zh_CN', 'nl'):
+for lang in ('it', 'de', 'pl', 'es', 'fr', 'ru', 'hu', 'cs', 'pt_BR', 'zh_CN', 'nl', 'ua'):
 	pofile = "po/" + lang + ".po"
 	mofile = "mo/" + lang + "/mirage.mo"
 	if not os.path.exists("mo/" + lang + "/"):
@@ -41,7 +41,7 @@ for lang in ('it', 'de', 'pl', 'es', 'fr', 'ru', 'hu', 'cs', 'pt_BR', 'zh_CN', '
 	os.system("msgfmt %s -o %s" % (pofile, mofile))
 
 setup(name='Mirage',
-		version='0.9.5.1',
+		version='0.9.5.2',
 		description='A fast GTK+ image viewer',
 		author='Scott Horowitz',
 		author_email='stonecrest@gmail.com',
@@ -73,6 +73,7 @@ setup(name='Mirage',
 			('share/locale/nl/LC_MESSAGES', ['mo/nl/mirage.mo']),
 			('share/locale/pt_BR/LC_MESSAGES', ['mo/pt_BR/mirage.mo']),
 			('share/locale/zh_CN/LC_MESSAGES', ['mo/zh_CN/mirage.mo']),
+			('share/locale/ua/LC_MESSAGES', ['mo/ua/mirage.mo']),
 			('share/locale/it/LC_MESSAGES', ['mo/it/mirage.mo'])],
 		)
 
