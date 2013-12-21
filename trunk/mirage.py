@@ -25,9 +25,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-#import gi
-#gi.require_version('Gtk', '3.0')
-#from gi.repository import Gtk
+import gi
+gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
 import os, sys, getopt, string, gc
 import random, urllib, gettext, locale
@@ -42,39 +41,39 @@ gettext.install("mirage", unicode=1)
 try:
 	import mirage_numacomp as numacomp
 	HAVE_NUMACOMP = True
-except:
+except ImportError:
 	HAVE_NUMACOMP = False
 	print _("mirage_numacomp.so not found, unable to do numerical aware sorting.")
 
 try:
 	import hashlib
 	HAS_HASHLIB = True
-except:
+except ImportError:
 	HAS_HASHLIB= False
 	import md5
 try:
 	import imgfuncs
 	HAS_IMGFUNCS = True
-except:
+except ImportError:
 	HAS_IMGFUNCS = False
 	print _("imgfuncs.so module not found, rotating/flipping images will be disabled.")
 try:
 	import xmouse
 	HAS_XMOUSE = True
-except:
+except ImportError:
 	HAS_XMOUSE = False
 	print _("xmouse.so module not found, some screenshot capabilities will be disabled.")
 
 try:
 	import pyexiv2
 	HAS_EXIF = True
-except:
+except ImportError:
 	HAS_EXIF = False
 	print _("pyexiv2 module not found, exifdata reading/writing are disabled")
 
 try:
 	from gi.repository import GConf
-except:
+except ImportError:
 	pass
 
 #if Gtk.gtk_version < (2, 10, 0):
