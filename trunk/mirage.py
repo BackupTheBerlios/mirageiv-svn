@@ -76,13 +76,6 @@ try:
 except ImportError:
 	pass
 
-#if Gtk.gtk_version < (2, 10, 0):
-#	sys.stderr.write(_("Mirage requires GTK+ %s or newer..\n") % "2.10.0")
-#	sys.exit(1)
-#if Gtk.pygtk_version < (2, 12, 0):
-#	sys.stderr.write(_("Mirage requires PyGTK %s or newer.\n") % "2.12.0")
-#	sys.exit(1)
-
 def valid_int(inputstring):
 	try:
 		x = int(inputstring)
