@@ -24,16 +24,18 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import traceback
-import pygtk
-pygtk.require('2.0')
-import gtk
+
+#import gi
+#gi.require_version('Gtk', '3.0')
+#from gi.repository import Gtk
+from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
 import os, sys, getopt, string, gc
-import random, urllib, gobject, gettext, locale
+import random, urllib, gettext, locale
 import stat, time, subprocess, shutil, filecmp
 import tempfile, socket, threading, copy
 from fractions import Fraction
 import json
+
 
 gettext.install("mirage", unicode=1)
 
@@ -71,16 +73,16 @@ except:
 	print _("pyexiv2 module not found, exifdata reading/writing are disabled")
 
 try:
-	import gconf
+	from gi.repository import GConf
 except:
 	pass
 
-if gtk.gtk_version < (2, 10, 0):
-	sys.stderr.write(_("Mirage requires GTK+ %s or newer..\n") % "2.10.0")
-	sys.exit(1)
-if gtk.pygtk_version < (2, 12, 0):
-	sys.stderr.write(_("Mirage requires PyGTK %s or newer.\n") % "2.12.0")
-	sys.exit(1)
+#if Gtk.gtk_version < (2, 10, 0):
+#	sys.stderr.write(_("Mirage requires GTK+ %s or newer..\n") % "2.10.0")
+#	sys.exit(1)
+#if Gtk.pygtk_version < (2, 12, 0):
+#	sys.stderr.write(_("Mirage requires PyGTK %s or newer.\n") % "2.12.0")
+#	sys.exit(1)
 
 def valid_int(inputstring):
 	try:
@@ -92,7 +94,8 @@ def valid_int(inputstring):
 class Base:
 
 	def __init__(self):
-		gtk.gdk.threads_init()
+		#Gdk.threads_init()
+		Gdk.threads_init()
 
 		# Constants
 		self.open_mode_smart = 0
@@ -171,12 +174,12 @@ class Base:
 		self.read_config_and_set_settings()
 		# Set the bg color variable
 		bgc = self.usettings['bgcolor']
-		self.bgcolor = gtk.gdk.Color(red=bgc['r'], green=bgc['g'], blue=bgc['b'])
+		self.bgcolor = Gdk.Color(red=bgc['r'], green=bgc['g'], blue=bgc['b'])
 		
 		self.going_random = False
 		self.fullscreen_mode = False
 		self.opendialogpath = ""
-		self.zoom_quality = gtk.gdk.INTERP_BILINEAR
+		self.zoom_quality = GdkPixbuf.InterpType.BILINEAR
 		self.recursive = False
 		self.verbose = False
 		self.image_loaded = False
@@ -252,19 +255,19 @@ class Base:
 		# Find application images/pixmaps
 		self.resource_path_list = False
 
-		self.blank_image = gtk.gdk.pixbuf_new_from_file(self.find_path("mirage_blank.png"))
+		self.blank_image = GdkPixbuf.Pixbuf.new_from_file(self.find_path("mirage_blank.png"))
 
 		# Define the main menubar and toolbar:
-		self.iconfactory = gtk.IconFactory()
-		icon = gtk.gdk.pixbuf_new_from_file(self.find_path('stock_leave-fullscreen.png'))
-		self.iconfactory.add('leave-fullscreen', gtk.IconSet(icon))
-		icon = gtk.gdk.pixbuf_new_from_file(self.find_path('stock_fullscreen.png'))
-		self.iconfactory.add('fullscreen', gtk.IconSet(icon))
+		self.iconfactory = Gtk.IconFactory()
+		icon = GdkPixbuf.Pixbuf.new_from_file(self.find_path('stock_leave-fullscreen.png'))
+		self.iconfactory.add('leave-fullscreen', Gtk.IconSet(icon))
+		icon = GdkPixbuf.Pixbuf.new_from_file(self.find_path('stock_fullscreen.png'))
+		self.iconfactory.add('fullscreen', Gtk.IconSet(icon))
 		self.iconfactory.add_default()
 		try:
-			test = gtk.Button("", gtk.STOCK_LEAVE_FULLSCREEN)
-			leave_fullscreen_icon = gtk.STOCK_LEAVE_FULLSCREEN
-			fullscreen_icon = gtk.STOCK_FULLSCREEN
+			test = Gtk.Button("", Gtk.STOCK_LEAVE_FULLSCREEN)
+			leave_fullscreen_icon = Gtk.STOCK_LEAVE_FULLSCREEN
+			fullscreen_icon = Gtk.STOCK_FULLSCREEN
 		except:
 			# This will allow gtk 2.6 users to run Mirage
 			leave_fullscreen_icon = 'leave-fullscreen'
@@ -277,45 +280,45 @@ class Base:
 			('GoMenu', None, _('_Go')),
 			('HelpMenu', None, _('_Help')),
 			('ActionSubMenu', None, _('Custom _Actions')),
-			('Open Image', gtk.STOCK_FILE, _('_Open Image...'), None, _('Open Image'), self.open_file),
-			('Open Remote Image', gtk.STOCK_NETWORK, _('Open _Remote image...'), None, _('Open Remote Image'), self.open_file_remote),
-			('Open Folder', gtk.STOCK_DIRECTORY, _('Open _Folder...'), '<Ctrl>F', _('Open Folder'), self.open_folder),
+			('Open Image', Gtk.STOCK_FILE, _('_Open Image...'), None, _('Open Image'), self.open_file),
+			('Open Remote Image', Gtk.STOCK_NETWORK, _('Open _Remote image...'), None, _('Open Remote Image'), self.open_file_remote),
+			('Open Folder', Gtk.STOCK_DIRECTORY, _('Open _Folder...'), '<Ctrl>F', _('Open Folder'), self.open_folder),
 			('Reload', None, _('Reload'), '<Ctrl>F5', _('Reload'), self.reload),
-			('Save', gtk.STOCK_SAVE, _('_Save Image'), None, None, self.save_image),
-			('Save As', gtk.STOCK_SAVE_AS, _('Save Image _As...'), '<Ctrl><Shift>S', None, self.save_image_as),
-			('Copy', gtk.STOCK_COPY, _('Copy to Clipboard...'), '<Ctrl>C', None, self.copy_to_clipboard),
+			('Save', Gtk.STOCK_SAVE, _('_Save Image'), None, None, self.save_image),
+			('Save As', Gtk.STOCK_SAVE_AS, _('Save Image _As...'), '<Ctrl><Shift>S', None, self.save_image_as),
+			('Copy', Gtk.STOCK_COPY, _('Copy to Clipboard...'), '<Ctrl>C', None, self.copy_to_clipboard),
 			('Crop', None, _('C_rop...'), None, _('Crop Image'), self.crop_image),
 			('Resize', None, _('R_esize...'), '<Ctrl>R', _('Resize Image'), self.resize_image),
 			('Saturation', None, _('_Saturation...'), None, _('Modify saturation'), self.saturation),
-			('Quit', gtk.STOCK_QUIT, None, None, None, self.exit_app),
-			('Previous Image', gtk.STOCK_GO_BACK, _('_Previous Image'), 'Left', _('Previous Image'), self.goto_prev_image),
-			('Previous Subfolder', gtk.STOCK_MEDIA_REWIND, _('Pre_vious Subfolder'), '<Shift>Left', _('Previous Subfolder'), self.goto_first_image_prev_subfolder),
-			('Next Image', gtk.STOCK_GO_FORWARD, _('_Next Image'), 'Right', _('Next Image'), self.goto_next_image),
-			('Next Subfolder', gtk.STOCK_MEDIA_FORWARD, _('Ne_xt Subfolder'), '<Shift>Right', _('Next Subfolder'), self.goto_first_image_next_subfolder),
-			('Previous2', gtk.STOCK_GO_BACK, _('_Previous'), 'Left', _('Previous'), self.goto_prev_image),
-			('Next2', gtk.STOCK_GO_FORWARD, _('_Next'), 'Right', _('Next'), self.goto_next_image),
+			('Quit', Gtk.STOCK_QUIT, None, None, None, self.exit_app),
+			('Previous Image', Gtk.STOCK_GO_BACK, _('_Previous Image'), 'Left', _('Previous Image'), self.goto_prev_image),
+			('Previous Subfolder', Gtk.STOCK_MEDIA_REWIND, _('Pre_vious Subfolder'), '<Shift>Left', _('Previous Subfolder'), self.goto_first_image_prev_subfolder),
+			('Next Image', Gtk.STOCK_GO_FORWARD, _('_Next Image'), 'Right', _('Next Image'), self.goto_next_image),
+			('Next Subfolder', Gtk.STOCK_MEDIA_FORWARD, _('Ne_xt Subfolder'), '<Shift>Right', _('Next Subfolder'), self.goto_first_image_next_subfolder),
+			('Previous2', Gtk.STOCK_GO_BACK, _('_Previous'), 'Left', _('Previous'), self.goto_prev_image),
+			('Next2', Gtk.STOCK_GO_FORWARD, _('_Next'), 'Right', _('Next'), self.goto_next_image),
 			('Random Image', None, _('_Random Image'), 'R', _('Random Image'), self.goto_random_image),
-			('First Image', gtk.STOCK_GOTO_FIRST, _('_First Image'), 'Home', _('First Image'), self.goto_first_image),
-			('Last Image', gtk.STOCK_GOTO_LAST, _('_Last Image'), 'End', _('Last Image'), self.goto_last_image),
-			('In', gtk.STOCK_ZOOM_IN, _('Zoom _In'), '<Ctrl>Up', _('Zoom In'), self.zoom_in),
-			('Out', gtk.STOCK_ZOOM_OUT, _('Zoom _Out'), '<Ctrl>Down', _('Zoom Out'), self.zoom_out),
-			('Fit', gtk.STOCK_ZOOM_FIT, _('Zoom To _Fit'), '<Ctrl>1', _('Fit'), self.zoom_to_fit_window_action),
-			('1:1', gtk.STOCK_ZOOM_100, _('_1:1'), '<Ctrl>0', _('1:1'), self.zoom_1_to_1_action),
+			('First Image', Gtk.STOCK_GOTO_FIRST, _('_First Image'), 'Home', _('First Image'), self.goto_first_image),
+			('Last Image', Gtk.STOCK_GOTO_LAST, _('_Last Image'), 'End', _('Last Image'), self.goto_last_image),
+			('In', Gtk.STOCK_ZOOM_IN, _('Zoom _In'), '<Ctrl>Up', _('Zoom In'), self.zoom_in),
+			('Out', Gtk.STOCK_ZOOM_OUT, _('Zoom _Out'), '<Ctrl>Down', _('Zoom Out'), self.zoom_out),
+			('Fit', Gtk.STOCK_ZOOM_FIT, _('Zoom To _Fit'), '<Ctrl>1', _('Fit'), self.zoom_to_fit_window_action),
+			('1:1', Gtk.STOCK_ZOOM_100, _('_1:1'), '<Ctrl>0', _('1:1'), self.zoom_1_to_1_action),
 			('Rotate Left', None, _('Rotate _Left'), '<Ctrl>Left', _('Rotate Left'), self.rotate_left),
 			('Rotate Right', None, _('Rotate _Right'), '<Ctrl>Right', _('Rotate Right'), self.rotate_right),
 			('Flip Vertically', None, _('Flip _Vertically'), '<Ctrl>V', _('Flip Vertically'), self.flip_image_vert),
 			('Flip Horizontally', None, _('Flip _Horizontally'), '<Ctrl>H', _('Flip Horizontally'), self.flip_image_horiz),
-			('About', gtk.STOCK_ABOUT, None, None, None, self.show_about),
-			('Contents', gtk.STOCK_HELP, _('_Contents'), 'F1', _('Contents'), self.show_help),
-			('Preferences', gtk.STOCK_PREFERENCES, _('Pr_eferences...'), None, _('Preferences'), self.show_prefs),
-			('Full Screen', gtk.STOCK_FULLSCREEN, None, 'F11', None, self.enter_fullscreen),
+			('About', Gtk.STOCK_ABOUT, None, None, None, self.show_about),
+			('Contents', Gtk.STOCK_HELP, _('_Contents'), 'F1', _('Contents'), self.show_help),
+			('Preferences', Gtk.STOCK_PREFERENCES, _('Pr_eferences...'), None, _('Preferences'), self.show_prefs),
+			('Full Screen', Gtk.STOCK_FULLSCREEN, None, 'F11', None, self.enter_fullscreen),
 			('Exit Full Screen', leave_fullscreen_icon, _('E_xit Full Screen'), None, _('Exit Full Screen'), self.leave_fullscreen),
-			('Start Slideshow', gtk.STOCK_MEDIA_PLAY, _('_Start Slideshow'), 'F5', _('Start Slideshow'), self.toggle_slideshow),
-			('Stop Slideshow', gtk.STOCK_MEDIA_STOP, _('_Stop Slideshow'), 'F5', _('Stop Slideshow'), self.toggle_slideshow),
-			('Delete Image', gtk.STOCK_DELETE, _('_Delete...'), 'Delete', _('Delete Image'), self.delete_image),
+			('Start Slideshow', Gtk.STOCK_MEDIA_PLAY, _('_Start Slideshow'), 'F5', _('Start Slideshow'), self.toggle_slideshow),
+			('Stop Slideshow', Gtk.STOCK_MEDIA_STOP, _('_Stop Slideshow'), 'F5', _('Stop Slideshow'), self.toggle_slideshow),
+			('Delete Image', Gtk.STOCK_DELETE, _('_Delete...'), 'Delete', _('Delete Image'), self.delete_image),
 			('Rename Image', None, _('Re_name...'), 'F2', _('Rename Image'), self.rename_image),
 			('Take Screenshot', None, _('_Take Screenshot...'), None, _('Take Screenshot'), self.screenshot),
-			('Properties', gtk.STOCK_PROPERTIES, _('_Properties...'), None, _('Properties'), self.show_properties),
+			('Properties', Gtk.STOCK_PROPERTIES, _('_Properties...'), None, _('Properties'), self.show_properties),
 			('Custom Actions', None, _('_Configure...'), None, _('Custom Actions'), self.show_custom_actions),
 			('MiscKeysMenuHidden', None, 'Keys'),
 			('Escape', None, '', 'Escape', _('Exit Full Screen'), self.leave_fullscreen),
@@ -486,15 +489,15 @@ class Base:
 			"""
 
 		# Create interface
-		self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+		self.window = Gtk.Window(Gtk.WindowType.TOPLEVEL)
 		self.update_title()
 		try:
-			gtk.window_set_default_icon_from_file(self.find_path('mirage.png'))
+			Gtk.window_set_default_icon_from_file(self.find_path('mirage.png'))
 		except:
 			pass
-		vbox = gtk.VBox(False, 0)
-		self.UIManager = gtk.UIManager()
-		actionGroup = gtk.ActionGroup('Actions')
+		vbox = Gtk.VBox(False, 0)
+		self.UIManager = Gtk.UIManager()
+		actionGroup = Gtk.ActionGroup('Actions')
 		actionGroup.add_actions(actions)
 		actionGroup.add_toggle_actions(toggle_actions)
 		self.UIManager.insert_action_group(actionGroup, 0)
@@ -506,53 +509,54 @@ class Base:
 		vbox.pack_start(self.menubar, False, False, 0)
 		self.toolbar = self.UIManager.get_widget('/MainToolbar')
 		vbox.pack_start(self.toolbar, False, False, 0)
-		self.layout = gtk.Layout()
-		self.vscroll = gtk.VScrollbar(None)
+		self.layout = Gtk.Layout()
+		self.vscroll = Gtk.VScrollbar(None)
 		self.vscroll.set_adjustment(self.layout.get_vadjustment())
-		self.hscroll = gtk.HScrollbar(None)
+		self.hscroll = Gtk.HScrollbar(None)
 		self.hscroll.set_adjustment(self.layout.get_hadjustment())
-		self.table = gtk.Table(3, 2, False)
+		self.table = Gtk.Table(3, 2, False)
 
-		self.thumblist = gtk.ListStore(gtk.gdk.Pixbuf)
-		self.thumbpane = gtk.TreeView(self.thumblist)
-		self.thumbcolumn = gtk.TreeViewColumn(None)
-		self.thumbcell = gtk.CellRendererPixbuf()
-		self.thumbcolumn.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		self.thumblist = Gtk.ListStore(GdkPixbuf.Pixbuf)
+		self.thumbpane = Gtk.TreeView(self.thumblist)
+		self.thumbcolumn = Gtk.TreeViewColumn(None)
+		self.thumbcell = Gtk.CellRendererPixbuf()
+		self.thumbcolumn.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
 		self.thumbpane_set_size()
 		self.thumbpane.append_column(self.thumbcolumn)
 		self.thumbcolumn.pack_start(self.thumbcell, True)
 		self.thumbcolumn.set_attributes(self.thumbcell, pixbuf=0)
-		self.thumbpane.get_selection().set_mode(gtk.SELECTION_SINGLE)
+		self.thumbpane.get_selection().set_mode(Gtk.SelectionMode.SINGLE)
 		self.thumbpane.set_headers_visible(False)
 		self.thumbpane.set_property('can-focus', False)
-		self.thumbscroll = gtk.ScrolledWindow()
-		self.thumbscroll.set_policy(gtk.POLICY_NEVER, gtk.POLICY_ALWAYS)
+		self.thumbscroll = Gtk.ScrolledWindow()
+		self.thumbscroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.ALWAYS)
 		self.thumbscroll.add(self.thumbpane)
 
-		self.table.attach(self.thumbscroll, 0, 1, 0, 1, 0, gtk.FILL|gtk.EXPAND, 0, 0)
-		self.table.attach(self.layout, 1, 2, 0, 1, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
-		self.table.attach(self.hscroll, 1, 2, 1, 2, gtk.FILL|gtk.SHRINK, gtk.FILL|gtk.SHRINK, 0, 0)
-		self.table.attach(self.vscroll, 2, 3, 0, 1, gtk.FILL|gtk.SHRINK, gtk.FILL|gtk.SHRINK, 0, 0)
+		self.table.attach(self.thumbscroll, 0, 1, 0, 1, 0, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		self.table.attach(self.layout, 1, 2, 0, 1, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		self.table.attach(self.hscroll, 1, 2, 1, 2, Gtk.AttachOptions.FILL|Gtk.AttachOptions.SHRINK, Gtk.AttachOptions.FILL|Gtk.AttachOptions.SHRINK, 0, 0)
+		self.table.attach(self.vscroll, 2, 3, 0, 1, Gtk.AttachOptions.FILL|Gtk.AttachOptions.SHRINK, Gtk.AttachOptions.FILL|Gtk.AttachOptions.SHRINK, 0, 0)
 		vbox.pack_start(self.table, True, True, 0)
 		
 		if self.usettings['simple_bgcolor']:
-			self.layout.modify_bg(gtk.STATE_NORMAL, None)
+			self.layout.modify_bg(Gtk.StateType.NORMAL, None)
 		else:
-			self.layout.modify_bg(gtk.STATE_NORMAL, self.bgcolor)
-		self.imageview = gtk.Image()
+			self.layout.modify_bg(Gtk.StateType.NORMAL, self.bgcolor)
+		
+		self.imageview = Gtk.Image()
+#		self.imageholder = Gtk.EventBox.new()
+#		self.imageholder.add(self.imageview)
 		self.layout.add(self.imageview)
 
-		self.statusbar = gtk.Statusbar()
-		self.statusbar2 = gtk.Statusbar()
-		self.statusbar.set_has_resize_grip(False)
-		self.statusbar2.set_has_resize_grip(True)
+		self.statusbar = Gtk.Statusbar()
+		self.statusbar2 = Gtk.Statusbar()
 		self.statusbar2.set_size_request(200, -1)
-		hbox_statusbar = gtk.HBox()
-		hbox_statusbar.pack_start(self.statusbar, expand=True)
-		hbox_statusbar.pack_start(self.statusbar2, expand=False)
+		hbox_statusbar = Gtk.HBox()
+		hbox_statusbar.pack_start(self.statusbar, True, True, 0)
+		hbox_statusbar.pack_start(self.statusbar2, False, True, 0)
 		vbox.pack_start(hbox_statusbar, False, False, 0)
 		self.window.add(vbox)
-		self.window.set_property('allow-shrink', False)
+#		self.window.set_property('allow-shrink', False)
 		self.window.set_default_size(self.usettings['window_width'],self.usettings['window_height'])
 		
 		# Create slideshow window:
@@ -565,34 +569,37 @@ class Base:
 		self.window.connect("configure_event", self.store_window_size)
 		self.window.connect('key-press-event', self.topwindow_keypress)
 		self.toolbar.connect('focus', self.toolbar_focused)
-		self.layout.drag_dest_set(gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_DROP, [("text/uri-list", 0, 80)], gtk.gdk.ACTION_DEFAULT)
+		targets = Gtk.TargetEntry.new("text/uri",80,0)
+#		self.layout.drag_dest_set(Gtk.DestDefaults.HIGHLIGHT | Gtk.DestDefaults.DROP, targets, Gdk.DragAction.DEFAULT)
+		self.layout.drag_dest_set(Gtk.DestDefaults.HIGHLIGHT | Gtk.DestDefaults.DROP, [], Gdk.DragAction.DEFAULT)
+#		self.layout.drag_dest_set(Gtk.DestDefaults.HIGHLIGHT | Gtk.DestDefaults.DROP, [], Gdk.DragAction.DEFAULT)
 		self.layout.connect('drag_motion', self.motion_cb)
 		self.layout.connect('drag_data_received', self.drop_cb)
-		self.layout.add_events(gtk.gdk.KEY_PRESS_MASK | gtk.gdk.POINTER_MOTION_MASK | gtk.gdk.BUTTON_PRESS_MASK | gtk.gdk.BUTTON_MOTION_MASK | gtk.gdk.SCROLL_MASK)
+		self.layout.add_events(Gdk.EventMask.KEY_PRESS_MASK | Gdk.EventMask.POINTER_MOTION_MASK | Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.BUTTON_MOTION_MASK | Gdk.EventMask.SCROLL_MASK)
 		self.layout.connect("scroll-event", self.mousewheel_scrolled)
-		self.layout.add_events(gtk.gdk.BUTTON_PRESS_MASK | gtk.gdk.KEY_PRESS_MASK)
+		self.layout.add_events(Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.KEY_PRESS_MASK)
 		self.layout.connect("button_press_event", self.button_pressed)
-		self.layout.add_events(gtk.gdk.POINTER_MOTION_MASK | gtk.gdk.POINTER_MOTION_HINT_MASK | gtk.gdk.BUTTON_RELEASE_MASK)
+		self.layout.add_events(Gdk.EventMask.POINTER_MOTION_MASK | Gdk.EventMask.POINTER_MOTION_HINT_MASK | Gdk.EventMask.BUTTON_RELEASE_MASK)
 		self.layout.connect("motion-notify-event", self.mouse_moved)
 		self.layout.connect("button-release-event", self.button_released)
-		self.imageview.connect("expose-event", self.expose_event)
+		self.imageview.connect("draw", self.expose_event)
 		self.thumb_sel_handler = self.thumbpane.get_selection().connect('changed', self.thumbpane_selection_changed)
 		self.thumb_scroll_handler = self.thumbscroll.get_vscrollbar().connect("value-changed", self.thumbpane_scrolled)
 
 		# Since GNOME does its own thing for the toolbar style...
 		# Requires gnome-python installed to work (but optional)
 		try:
-			client = gconf.client_get_default()
+			client = GConf.Client.get_default()
 			style = client.get_string('/desktop/gnome/interface/toolbar_style')
 			if style == "both":
-				self.toolbar.set_style(gtk.TOOLBAR_BOTH)
+				self.toolbar.set_style(Gtk.ToolbarStyle.BOTH)
 			elif style == "both-horiz":
-				self.toolbar.set_style(gtk.TOOLBAR_BOTH_HORIZ)
+				self.toolbar.set_style(Gtk.ToolbarStyle.BOTH_HORIZ)
 			elif style == "icons":
-				self.toolbar.set_style(gtk.TOOLBAR_ICONS)
+				self.toolbar.set_style(Gtk.ToolbarStyle.ICONS)
 			elif style == "text":
-				self.toolbar.set_style(gtk.TOOLBAR_TEXT)
-			client.add_dir("/desktop/gnome/interface", gconf.CLIENT_PRELOAD_NONE)
+				self.toolbar.set_style(Gtk.ToolbarStyle.TEXT)
+			client.add_dir("/desktop/gnome/interface", GConf.ClientPreloadType.PRELOAD_NONE)
 			client.notify_add("/desktop/gnome/interface/toolbar_style", self.gconf_key_changed)
 		except:
 			pass
@@ -622,10 +629,11 @@ class Base:
 		self.window.show_all()
 		#self.ss_exit.set_size_request(self.ss_start.size_request()[0]*2, self.ss_start.size_request()[1]*2)
 		#self.ss_randomize.set_size_request(self.ss_start.size_request()[0]*2, -1)
-		self.ss_start.set_size_request(self.ss_start.size_request()[0]*2, -1)
-		self.ss_stop.set_size_request(self.ss_stop.size_request()[0]*2, -1)
+		self.ss_start.set_size_request(self.ss_start.size_request().width*2, -1)
+		self.ss_stop.set_size_request(self.ss_stop.size_request().width*2, -1)
 		self.UIManager.get_widget('/Popup/Exit Full Screen').hide()
-		self.layout.set_flags(gtk.CAN_FOCUS)
+#		self.layout.set_flags(Gtk.CAN_FOCUS)
+		self.layout.set_can_focus(True)
 		self.window.set_focus(self.layout)
 
 		#sets the visibility of some menu entries
@@ -640,9 +648,9 @@ class Base:
 		if args != []:
 			for i in range(len(args)):
 				args[i] = urllib.url2pathname(args[i]).decode('utf-8')
-			gtk.gdk.threads_enter()
+			Gdk.threads_enter()
 			self.expand_filelist_and_load_image(args)
-			gtk.gdk.threads_leave()
+			Gdk.threads_leave()
 		else:
 			self.set_go_sensitivities(False)
 			self.set_image_sensitivities(False)
@@ -663,29 +671,29 @@ class Base:
 		# Read accel_map file, if it exists
 		accel = os.path.join(self.config_dir, 'accel_map')
 		if os.path.isfile(accel):
-			gtk.accel_map_load(accel)
+			Gtk.AccelMap.load(accel)
 
 	def slideshow_setup(self):
 		# Create the left-side controls
-		self.slideshow_window = gtk.Window(gtk.WINDOW_POPUP)
-		self.slideshow_controls = gtk.HBox()
+		self.slideshow_window = Gtk.Window(Gtk.WindowType.POPUP)
+		self.slideshow_controls = Gtk.HBox()
 		# Back button
-		self.ss_back = gtk.Button()
-		self.ss_back.add(gtk.image_new_from_stock(gtk.STOCK_GO_BACK, gtk.ICON_SIZE_BUTTON))
+		self.ss_back = Gtk.Button()
+		self.ss_back.add(Gtk.Image.new_from_stock(Gtk.STOCK_GO_BACK, Gtk.IconSize.BUTTON))
 		self.ss_back.set_property('can-focus', False)
 		self.ss_back.connect('clicked', self.goto_prev_image)
 		# Start/Stop buttons
-		self.ss_start = gtk.Button()
-		self.ss_start.add(gtk.image_new_from_stock(gtk.STOCK_MEDIA_PLAY, gtk.ICON_SIZE_BUTTON))
+		self.ss_start = Gtk.Button()
+		self.ss_start.add(Gtk.Image.new_from_stock(Gtk.STOCK_MEDIA_PLAY, Gtk.IconSize.BUTTON))
 		self.ss_start.set_property('can-focus', False)
 		self.ss_start.connect('clicked', self.toggle_slideshow)
-		self.ss_stop = gtk.Button()
-		self.ss_stop.add(gtk.image_new_from_stock(gtk.STOCK_MEDIA_STOP, gtk.ICON_SIZE_BUTTON))
+		self.ss_stop = Gtk.Button()
+		self.ss_stop.add(Gtk.Image.new_from_stock(Gtk.STOCK_MEDIA_STOP, Gtk.IconSize.BUTTON))
 		self.ss_stop.set_property('can-focus', False)
 		self.ss_stop.connect('clicked', self.toggle_slideshow)
 		# Forward button
-		self.ss_forward = gtk.Button()
-		self.ss_forward.add(gtk.image_new_from_stock(gtk.STOCK_GO_FORWARD, gtk.ICON_SIZE_BUTTON))
+		self.ss_forward = Gtk.Button()
+		self.ss_forward.add(Gtk.Image.new_from_stock(Gtk.STOCK_GO_FORWARD, Gtk.IconSize.BUTTON))
 		self.ss_forward.set_property('can-focus', False)
 		self.ss_forward.connect('clicked', self.goto_next_image)
 		# Pack controls into the slideshow window
@@ -695,32 +703,35 @@ class Base:
 		self.slideshow_controls.pack_start(self.ss_forward, False, False, 0)
 		self.slideshow_window.add(self.slideshow_controls)
 		if self.usettings['simple_bgcolor']:
-			self.slideshow_window.modify_bg(gtk.STATE_NORMAL, None)
+			self.slideshow_window.modify_bg(Gtk.StateType.NORMAL, None)
 		else:
-			self.slideshow_window.modify_bg(gtk.STATE_NORMAL, self.bgcolor)
+			self.slideshow_window.modify_bg(Gtk.StateType.NORMAL, self.bgcolor)
 		
 		# Create the right-side controls
-		self.slideshow_window2 = gtk.Window(gtk.WINDOW_POPUP)
-		self.slideshow_controls2 = gtk.HBox()
+		self.slideshow_window2 = Gtk.Window(Gtk.WindowType.POPUP)
+		self.slideshow_controls2 = Gtk.HBox()
 		try:
-			self.ss_exit = gtk.Button()
-			self.ss_exit.add(gtk.image_new_from_stock(gtk.STOCK_LEAVE_FULLSCREEN, gtk.ICON_SIZE_BUTTON))
+			self.ss_exit = Gtk.Button()
+			self.ss_exit.add(Gtk.Image.new_from_stock(Gtk.STOCK_LEAVE_FULLSCREEN, Gtk.IconSize.BUTTON))
 		except:
-			self.ss_exit = gtk.Button()
-			self.ss_exit.set_image(gtk.image_new_from_stock('leave-fullscreen', gtk.ICON_SIZE_BUTTON))
+			self.ss_exit = Gtk.Button()
+			self.ss_exit.set_image(Gtk.Image.new_from_stock('leave-fullscreen', Gtk.IconSize.BUTTON))
 		self.ss_exit.set_property('can-focus', False)
 		self.ss_exit.connect('clicked', self.leave_fullscreen)
-		self.ss_randomize = gtk.ToggleButton()
+		self.ss_randomize = Gtk.ToggleButton()
 		try:
-			pixbuf = gtk.gdk.pixbuf_new_from_file(self.find_path('stock_shuffle.png'))
-			self.iconfactory.add('stock-shuffle', gtk.IconSet(pixbuf))
-			self.ss_randomize.set_image(gtk.image_new_from_stock('stock-shuffle', gtk.ICON_SIZE_BUTTON))
+			pixbuf = GdkPixbuf.Pixbuf.new_from_file(self.find_path('stock_shuffle.png'))
+			self.iconfactory.add('stock-shuffle', Gtk.IconSet(pixbuf))
+			self.ss_randomize.set_image(Gtk.Image.new_from_stock('stock-shuffle', Gtk.IconSize.BUTTON))
 		except:
 			self.ss_randomize.set_label("Rand")
 		self.ss_randomize.connect('toggled', self.random_changed)
 
-		spin_adj = gtk.Adjustment(self.usettings['slideshow_delay'], 0, 50000, 1,100, 0)
-		self.ss_delayspin = gtk.SpinButton(spin_adj, 1.0, 0)
+		spin_adj = Gtk.Adjustment(self.usettings['slideshow_delay'], 0, 50000, 1,100, 0)
+#		self.ss_delayspin = Gtk.SpinButton(spin_adj, 1.0, 0)
+		self.ss_delayspin = Gtk.SpinButton()
+		self.ss_delayspin.set_adjustment(spin_adj)
+		self.ss_delayspin.set_property('climb-rate', 1.0)
 		self.ss_delayspin.set_numeric(True)
 		self.ss_delayspin.connect('changed', self.delay_changed)
 		self.slideshow_controls2.pack_start(self.ss_randomize, False, False, 0)
@@ -728,9 +739,9 @@ class Base:
 		self.slideshow_controls2.pack_start(self.ss_exit, False, False, 0)
 		self.slideshow_window2.add(self.slideshow_controls2)
 		if self.usettings['simple_bgcolor']:
-			self.slideshow_window2.modify_bg(gtk.STATE_NORMAL, None)
+			self.slideshow_window2.modify_bg(Gtk.StateType.NORMAL, None)
 		else:
-			self.slideshow_window2.modify_bg(gtk.STATE_NORMAL, self.bgcolor)
+			self.slideshow_window2.modify_bg(Gtk.StateType.NORMAL, self.bgcolor)
 
 	def refresh_recent_files_menu(self):
 		if self.merge_id_recent:
@@ -738,7 +749,7 @@ class Base:
 		if self.actionGroupRecent:
 			self.UIManager.remove_action_group(self.actionGroupRecent)
 			self.actionGroupRecent = None
-		self.actionGroupRecent = gtk.ActionGroup('RecentFiles')
+		self.actionGroupRecent = Gtk.ActionGroup('RecentFiles')
 		self.UIManager.ensure_update()
 		for i, file_path in enumerate(self.usettings['recentfiles']):
 			if file_path:
@@ -778,7 +789,7 @@ class Base:
 		if self.actionGroupCustom:
 			self.UIManager.remove_action_group(self.actionGroupCustom)
 			self.actionGroupCustom = None
-		self.actionGroupCustom = gtk.ActionGroup('CustomActions')
+		self.actionGroupCustom = Gtk.ActionGroup('CustomActions')
 		self.UIManager.ensure_update()
 		for i in range(len(self.usettings['action_names'])):
 			action = [(self.usettings['action_names'][i], None, self.usettings['action_names'][i], self.usettings['action_shortcuts'][i], None, self.custom_action_click)]
@@ -831,11 +842,11 @@ class Base:
 			if imgnum >= len(self.image_list):
 				break
 			self.thumbpane_set_image(self.image_list[imgnum], imgnum)
-			curr_coord += self.thumbpane.get_background_area((imgnum,),self.thumbcolumn).height
+			curr_coord += self.thumbpane.get_background_area(Gtk.TreePath.new_from_string(str(imgnum)),self.thumbcolumn).height
 			if force_upto_imgnum == imgnum:
 				# Verify that the user hasn't switched images while we're loading thumbnails:
 				if force_upto_imgnum == self.curr_img_in_list:
-					gobject.idle_add(self.thumbpane_select, force_upto_imgnum)
+					GObject.idle_add(self.thumbpane_select, force_upto_imgnum)
 			imgnum += 1
 		self.thumbpane_updating = False
 
@@ -857,7 +868,7 @@ class Base:
 				if pix:
 					if self.usettings['thumbnail_size'] != 128:
 						# 128 is the size of the saved thumbnail, so convert if different:
-						pix, image_width, image_height = self.get_pixbuf_of_size(pix, self.usettings['thumbnail_size'], gtk.gdk.INTERP_TILES)
+						pix, image_width, image_height = self.get_pixbuf_of_size(pix, self.usettings['thumbnail_size'], GdkPixbuf.InterpType.TILES)
 					self.thumbnail_loaded[imgnum] = True
 					self.thumbscroll.get_vscrollbar().handler_block(self.thumb_scroll_handler)
 					pix = self.pixbuf_add_border(pix)
@@ -888,7 +899,7 @@ class Base:
 			imgfile = imgfile[7:]
 		try:
 			if os.path.exists(thumb_url) and not force_generation:
-				pix = gtk.gdk.pixbuf_new_from_file(thumb_url)
+				pix = GdkPixbuf.Pixbuf.new_from_file(thumb_url)
 				pix_mtime = pix.get_option('tEXt::Thumb::MTime')
 				if pix_mtime:
 					st = os.stat(imgfile)
@@ -898,35 +909,34 @@ class Base:
 						return pix
 			# Create the 128x128 thumbnail:
 			uri = 'file://' + urllib.pathname2url(imgfile.encode('utf-8'))
-			#pix = gtk.gdk.pixbuf_new_from_file(imgfile)
+			#pix = GdkPixbuf.Pixbuf.new_from_file(imgfile)
 			pix = ImageData()
 			pix.load_pixbuf(imgfile)
-			pix, image_width, image_height = self.get_pixbuf_of_size(pix.pixbuf, 128, gtk.gdk.INTERP_TILES)
+			pix, image_width, image_height = self.get_pixbuf_of_size(pix.pixbuf, 128, GdkPixbuf.InterpType.TILES)
 			st = os.stat(imgfile)
 			file_mtime = str(st[stat.ST_MTIME])
 			# Save image to .thumbnails:
-			pix.save(thumb_url, "png", {'tEXt::Thumb::URI':uri, 'tEXt::Thumb::MTime':file_mtime, 'tEXt::Software':'Mirage' + __version__})
+			pix.savev(thumb_url, "png", ['tEXt::Thumb::URI', 'tEXt::Thumb::MTime', 'tEXt::Software'],[uri,file_mtime,'Mirage' + __version__])
 			return pix
 		except:
-			
 			return None
 
 	def thumbpane_load_image(self, treeview, imgnum):
 		if imgnum != self.curr_img_in_list:
-			gobject.idle_add(self.goto_image, str(imgnum), None)
+			GObject.idle_add(self.goto_image, str(imgnum), None)
 
 	def thumbpane_selection_changed(self, treeview):
 		cancel = self.autosave_image()
 		if cancel:
 			# Revert selection...
-			gobject.idle_add(self.thumbpane_select, self.curr_img_in_list)
+			GObject.idle_add(self.thumbpane_select, self.curr_img_in_list)
 			return True
 		try:
 			model, paths = self.thumbpane.get_selection().get_selected_rows()
 			imgnum = paths[0][0]
 			if not self.thumbnail_loaded[imgnum]:
 				self.thumbpane_set_image(self.image_list[imgnum], imgnum)
-			gobject.idle_add(self.thumbpane_load_image, treeview, imgnum)
+			GObject.idle_add(self.thumbpane_load_image, treeview, imgnum)
 		except:
 			pass
 
@@ -934,15 +944,16 @@ class Base:
 		if self.usettings['thumbpane_show']:
 			self.thumbpane.get_selection().handler_block(self.thumb_sel_handler)
 			try:
-				self.thumbpane.get_selection().select_path((imgnum,))
-				self.thumbpane.scroll_to_cell((imgnum,))
-			except:
+				p = Gtk.TreePath.new_from_string(str(imgnum))
+				self.thumbpane.get_selection().select_path(p)
+				self.thumbpane.scroll_to_cell(p)
+			except IOError:
 				pass
 			self.thumbpane.get_selection().handler_unblock(self.thumb_sel_handler)
 
 	def thumbpane_set_size(self):
 		self.thumbcolumn.set_fixed_width(self.thumbpane_get_size())
-		self.window_resized(None, self.window.allocation, True)
+		self.window_resized(None, self.window.get_allocation(), True)
 
 	def thumbpane_get_size(self):
 		return int(self.usettings['thumbnail_size'] * 1.3)
@@ -955,7 +966,7 @@ class Base:
 		# load a humongous icon for a small pix, for example, and will keep the thumbnails
 		# from shifting around when they are actually loaded.
 		try:
-			info = gtk.gdk.pixbuf_get_file_info(image)
+			info = GdkPixbuf.Pixbuf.get_file_info(image)
 			imgwidth = float(info[1])
 			imgheight = float(info[2])
 			if imgheight > self.usettings['thumbnail_size']:
@@ -968,11 +979,11 @@ class Base:
 		except:
 			imgheight = 2 + self.usettings['thumbnail_size']
 			imgwidth = self.usettings['thumbnail_size']
-		blank_pix = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, True, 8, imgwidth, imgheight)
+		blank_pix = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, imgwidth, imgheight)
 		blank_pix.fill(0x00000000)
 		imgwidth2 = int(imgheight*0.8)
 		imgheight2 = int(imgheight*0.8)
-		composite_pix = self.blank_image.scale_simple(imgwidth2, imgheight2, gtk.gdk.INTERP_BILINEAR)
+		composite_pix = self.blank_image.scale_simple(imgwidth2, imgheight2, GdkPixbuf.InterpType.BILINEAR)
 		leftcoord = int((imgwidth - imgwidth2)/2)
 		topcoord = int((imgheight - imgheight2)/2)
 		composite_pix.copy_area(0, 0, imgwidth2, imgheight2, blank_pix, leftcoord, topcoord)
@@ -1005,21 +1016,21 @@ class Base:
 		# If we reached here, we didn't find the pixmap
 		if exit_on_fail:
 			print _("Couldn't find the image %s. Please check your installation.") % filename
-			gtk.main_quit(1)
+			Gtk.main_quit(1)
 		else:
 			return None
 
 	def gconf_key_changed(self, client, cnxn_id, entry, label):
-		if entry.value.type == gconf.VALUE_STRING:
+		if entry.value.type == GConf.ValueType.STRING:
 			style = entry.value.to_string()
 			if style == "both":
-				self.toolbar.set_style(gtk.TOOLBAR_BOTH)
+				self.toolbar.set_style(Gtk.ToolbarStyle.BOTH)
 			elif style == "both-horiz":
-				self.toolbar.set_style(gtk.TOOLBAR_BOTH_HORIZ)
+				self.toolbar.set_style(Gtk.ToolbarStyle.BOTH_HORIZ)
 			elif style == "icons":
-				self.toolbar.set_style(gtk.TOOLBAR_ICONS)
+				self.toolbar.set_style(Gtk.ToolbarStyle.ICONS)
 			elif style == "text":
-				self.toolbar.set_style(gtk.TOOLBAR_TEXT)
+				self.toolbar.set_style(Gtk.ToolbarStyle.TEXT)
 			self.image_zoom_fit_update()
 
 	def toolbar_focused(self, widget, direction):
@@ -1029,43 +1040,43 @@ class Base:
 	def topwindow_keypress(self, widget, event):
 		# For whatever reason, 'Left' and 'Right' cannot be used as menu
 		# accelerators so we will manually check for them here:
-		if (not (event.state & gtk.gdk.SHIFT_MASK)) and not (event.state & gtk.gdk.CONTROL_MASK) and not (event.state & gtk.gdk.MOD1_MASK):
-			if event.keyval == gtk.gdk.keyval_from_name('Left') or event.keyval == gtk.gdk.keyval_from_name('Up'):
+		if (not (event.get_state() & Gdk.ModifierType.SHIFT_MASK)) and not (event.get_state() & Gdk.ModifierType.CONTROL_MASK) and not (event.get_state() & Gdk.ModifierType.MOD1_MASK):
+			if event.keyval == Gdk.keyval_from_name('Left') or event.keyval == Gdk.keyval_from_name('Up'):
 				self.goto_prev_image(None)
 				return
-			elif event.keyval == gtk.gdk.keyval_from_name('Right') or event.keyval == gtk.gdk.keyval_from_name('Down'):
+			elif event.keyval == Gdk.keyval_from_name('Right') or event.keyval == Gdk.keyval_from_name('Down'):
 				self.goto_next_image(None)
 				return
-		shortcut = gtk.accelerator_name(event.keyval, event.state)
+		shortcut = Gtk.accelerator_name(event.keyval, event.get_state())
 		if "Escape" in shortcut:
 			self.stop_now = True
 			self.searching_for_images = False
-			while gtk.events_pending():
-				gtk.main_iteration()
+			while Gtk.events_pending():
+				Gtk.main_iteration()
 			self.update_title()
 			return
 
 	def parse_action_command(self, command, batchmode):
 		self.running_custom_actions = True
-		self.change_cursor(gtk.gdk.Cursor(gtk.gdk.WATCH))
-		while gtk.events_pending():
-			gtk.main_iteration()
+		self.change_cursor(Gdk.Cursor.new(Gdk.CursorType.WATCH))
+		while Gtk.events_pending():
+			Gtk.main_iteration()
 		self.curr_custom_action = 0
 		if batchmode:
 			self.num_custom_actions = len(self.image_list)
 			for i in range(self.num_custom_actions):
 				self.curr_custom_action += 1
 				self.update_statusbar()
-				while gtk.events_pending():
-					gtk.main_iteration()
+				while Gtk.events_pending():
+					Gtk.main_iteration()
 				imagename = self.image_list[i]
 				self.parse_action_command2(command, imagename)
 		else:
 			self.num_custom_actions = 1
 			self.curr_custom_action = 1
 			self.update_statusbar()
-			while gtk.events_pending():
-				gtk.main_iteration()
+			while Gtk.events_pending():
+				Gtk.main_iteration()
 			self.parse_action_command2(command, self.currimg.name)
 		gc.collect()
 		self.change_cursor(None)
@@ -1074,7 +1085,7 @@ class Base:
 			self.currimg.unload_pixbuf()
 			self.image_load_failed(False)
 		else:
-			animtest = gtk.gdk.PixbufAnimation(self.currimg.name)
+			animtest = GdkPixbuf.PixbufAnimation.new_from_file(self.currimg.name)
 			if animtest.is_static_image():
 				if self.images_are_different(animtest.get_static_image(), self.currimg.pixbuf_original):
 					self.load_new_image2(False, False, True, False)
@@ -1083,39 +1094,39 @@ class Base:
 					self.load_new_image2(False, False, True, False)
 		self.running_custom_actions = False
 		self.update_statusbar()
-		while gtk.events_pending():
-			gtk.main_iteration()
+		while Gtk.events_pending():
+			Gtk.main_iteration()
 		if not os.path.exists(self.previmg.name):
 			self.previmg.unload_pixbuf()
 		else:
-			animtest = gtk.gdk.PixbufAnimation(self.previmg.name)
+			animtest = GdkPixbuf.PixbufAnimation.new_from_file(self.previmg.name)
 			if animtest.is_static_image():
 				if self.images_are_different(animtest.get_static_image(), self.previmg.pixbuf_original):
 					self.previmg.unload_pixbuf()
-					self.preload_when_idle = gobject.idle_add(self.preload_prev_image, False)
+					self.preload_when_idle = GObject.idle_add(self.preload_prev_image, False)
 			else:
 				if self.images_are_different(animtest, self.previmg.pixbuf_original):
 					self.previmg.unload_pixbuf()
-					self.preload_when_idle = gobject.idle_add(self.preload_prev_image, False)
+					self.preload_when_idle = GObject.idle_add(self.preload_prev_image, False)
 		if not os.path.exists(self.nextimg.name):
 			self.nextimg.unload_pixbuf()
 		else:
-			animtest = gtk.gdk.PixbufAnimation(self.nextimg.name)
+			animtest = GdkPixbuf.PixbufAnimation.new_from_file(self.nextimg.name)
 			if animtest.is_static_image():
 				if self.images_are_different(animtest.get_static_image(), self.nextimg.pixbuf_original):
 					self.nextimg.unload_pixbuf()
-					self.preload_when_idle = gobject.idle_add(self.preload_next_image, False)
+					self.preload_when_idle = GObject.idle_add(self.preload_next_image, False)
 			else:
 				if self.images_are_different(animtest, self.nextimg.pixbuf_original):
 					self.nextimg.unload_pixbuf()
-					self.preload_when_idle = gobject.idle_add(self.preload_next_image, False)
+					self.preload_when_idle = GObject.idle_add(self.preload_next_image, False)
 		self.stop_now = False
 		if batchmode:
 			# Update all thumbnails:
-			gobject.idle_add(self.thumbpane_update_images, True, self.curr_img_in_list)
+			GObject.idle_add(self.thumbpane_update_images, True, self.curr_img_in_list)
 		else:
 			# Update only the current thumbnail:
-			gobject.idle_add(self.thumbpane_set_image, self.image_list[self.curr_img_in_list], self.curr_img_in_list, True)
+			GObject.idle_add(self.thumbpane_set_image, self.image_list[self.curr_img_in_list], self.curr_img_in_list, True)
 
 	def images_are_different(self, pixbuf1, pixbuf2):
 		if pixbuf1.get_pixels() == pixbuf2.get_pixels():
@@ -1125,8 +1136,8 @@ class Base:
 
 	def recent_action_click(self, action):
 		self.stop_now = True
-		while gtk.events_pending():
-			gtk.main_iteration()
+		while Gtk.events_pending():
+			Gtk.main_iteration()
 		cancel = self.autosave_image()
 		if cancel:
 			return
@@ -1215,7 +1226,7 @@ class Base:
 			print _("Action return code: %s") % shell_rc
 		if shell_rc != 0:
 			msg = _('Unable to launch \"%s\". Please specify a valid command from Edit > Custom Actions.') % cmd
-			error_dialog = gtk.MessageDialog(self.window, gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE, msg)
+			error_dialog = Gtk.MessageDialog(self.window, Gtk.DialogFlags.MODAL, Gtk.MessageType.WARNING, Gtk.ButtonsType.CLOSE, msg)
 			error_dialog.set_title(_("Invalid Custom Action"))
 			error_dialog.run()
 			error_dialog.destroy()
@@ -1373,18 +1384,18 @@ class Base:
 	def delay_changed(self, action):
 		self.curr_slideshow_delay = self.ss_delayspin.get_value()
 		if self.slideshow_mode:
-			gobject.source_remove(self.timer_delay)
+			GObject.source_remove(self.timer_delay)
 			if self.curr_slideshow_random:
-				self.timer_delay = gobject.timeout_add(int(self.curr_slideshow_delay*1000), self.goto_random_image, "ss", True)
+				self.timer_delay = GObject.timeout_add(int(self.curr_slideshow_delay*1000), self.goto_random_image, "ss", True)
 			else:
-				self.timer_delay = gobject.timeout_add(int(self.curr_slideshow_delay*1000), self.goto_next_image, "ss", True)
+				self.timer_delay = GObject.timeout_add(int(self.curr_slideshow_delay*1000), self.goto_next_image, "ss", True)
 		self.window.set_focus(self.layout)
 
 	def random_changed(self, action):
 		self.curr_slideshow_random = self.ss_randomize.get_active()
 
 	def motion_cb(self, widget, context, x, y, time):
-		context.drag_status(gtk.gdk.ACTION_COPY, time)
+		context.drag_status(Gdk.DragAction.COPY, time)
 		return True
 
 	def drop_cb(self, widget, context, x, y, selection, info, time):
@@ -1396,9 +1407,9 @@ class Base:
 		self.expand_filelist_and_load_image(paths)
 
 	def put_error_image_to_window(self):
-		self.imageview.set_from_stock(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_LARGE_TOOLBAR)
-		self.currimg.width = self.imageview.size_request()[0]
-		self.currimg.height = self.imageview.size_request()[1]
+		self.imageview.set_from_stock(Gtk.STOCK_MISSING_IMAGE, Gtk.IconSize.LARGE_TOOLBAR)
+		self.currimg.width = self.imageview.size_request().width
+		self.currimg.height = self.imageview.size_request().height
 		self.center_image()
 		self.set_go_sensitivities(False)
 		self.set_image_sensitivities(False)
@@ -1439,8 +1450,8 @@ class Base:
 				self.load_new_image_stop_now()
 				self.show_scrollbars_if_needed()
 				# Also, regenerate preloaded image for new window size:
-				self.preload_when_idle = gobject.idle_add(self.preload_next_image, True)
-				self.preload_when_idle2 = gobject.idle_add(self.preload_prev_image, True)
+				self.preload_when_idle = GObject.idle_add(self.preload_next_image, True)
+				self.preload_when_idle2 = GObject.idle_add(self.preload_prev_image, True)
 		self.prevwinwidth = allocation.width
 		self.prevwinheight = allocation.height
 		return
@@ -1455,13 +1466,13 @@ class Base:
 		cf.close()
 
 		# Also, save accel_map:
-		gtk.accel_map_save(self.config_dir + '/accel_map')
+		Gtk.AccelMap.save(self.config_dir + '/accel_map')
 	
 	def store_window_size(self,widget,event):
 		# When the window is resized, store the size in the settings
-		x,y,w,h = widget.get_allocation()
-		self.usettings['window_width'] = w
-		self.usettings['window_height'] = h
+		allocation = widget.get_allocation()
+		self.usettings['window_width'] = allocation.width
+		self.usettings['window_height'] = allocation.height
 
 	def delete_event(self, widget, event, data=None):
 		cancel = self.autosave_image()
@@ -1470,7 +1481,7 @@ class Base:
 		self.stop_now = True
 		self.closing_app = True
 		self.save_settings()
-		gtk.main_quit(0)
+		Gtk.main_quit(0)
 
 	def destroy(self, event, data=None):
 		cancel = self.autosave_image()
@@ -1487,13 +1498,14 @@ class Base:
 		self.stop_now = True
 		self.closing_app = True
 		self.save_settings()
-		gtk.main_quit(0)
+		Gtk.main_quit(0)
 
 	def put_zoom_image_to_window(self, currimg_preloaded, zoom_ratio=1):
-		self.window.window.freeze_updates()
+		#print(dir(self.window))
+		#self.window.window.freeze_updates()
 		if not currimg_preloaded:
 			# Zoom the pixbuf
-			colormap = self.imageview.get_colormap()
+			colormap = self.imageview.get_visual()
 			self.currimg.zoom_pixbuf(zoom_ratio, self.zoom_quality, colormap)
 		self.layout.set_size(self.currimg.width, self.currimg.height)
 		self.center_image()
@@ -1506,7 +1518,7 @@ class Base:
 			self.previmage_is_animation = True
 		# Clean up (free memory) because I'm lazy
 		gc.collect()
-		self.window.window.thaw_updates()
+		#self.window.window.thaw_updates()
 		self.loaded_img_in_list = self.curr_img_in_list
 
 	def show_scrollbars_if_needed(self):
@@ -1532,17 +1544,17 @@ class Base:
 		width = self.window.get_size()[0]
 		if not self.fullscreen_mode:
 			if self.usettings['thumbpane_show']:
-				width -= self.thumbscroll.size_request()[0]
+				width -= self.thumbscroll.size_request().width
 		return width
 
 	def available_image_height(self):
 		height = self.window.get_size()[1]
 		if not self.fullscreen_mode:
-			height -= self.menubar.size_request()[1]
+			height -= self.menubar.size_request().height
 			if self.usettings['toolbar_show']:
-				height -= self.toolbar.size_request()[1]
+				height -= self.toolbar.size_request().height
 			if self.usettings['statusbar_show']:
-				height -= self.statusbar.size_request()[1]
+				height -= self.statusbar.size_request().height
 		return height
 
 	def save_image(self, action):
@@ -1550,15 +1562,15 @@ class Base:
 			self.save_image_now(self.currimg.name)
 
 	def save_image_as(self, action):
-		dialog = gtk.FileChooserDialog(title=_("Save As"),action=gtk.FILE_CHOOSER_ACTION_SAVE,buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_SAVE,gtk.RESPONSE_OK))
-		dialog.set_default_response(gtk.RESPONSE_OK)
+		dialog = Gtk.FileChooserDialog(title=_("Save As"),action=Gtk.FileChooserAction.SAVE,buttons=(Gtk.STOCK_CANCEL,Gtk.ResponseType.CANCEL,Gtk.STOCK_SAVE,Gtk.ResponseType.OK))
+		dialog.set_default_response(Gtk.ResponseType.OK)
 		filename = os.path.basename(self.currimg.name)
 		filetype = None
 		dialog.set_current_folder(os.path.dirname(self.currimg.name))
 		dialog.set_current_name(filename)
 		dialog.set_do_overwrite_confirmation(True)
 		response = dialog.run()
-		if response == gtk.RESPONSE_OK:
+		if response == Gtk.ResponseType.OK:
 			prev_name = self.currimg.name
 			filename = dialog.get_filename()
 			dialog.destroy()
@@ -1572,42 +1584,42 @@ class Base:
 
 	def save_image_now(self, dest_name, fileext=None):
 		try:
-			self.change_cursor(gtk.gdk.Cursor(gtk.gdk.WATCH))
-			while gtk.events_pending():
-				gtk.main_iteration()
+			self.change_cursor(Gdk.Cursor.new(Gdk.CursorType.WATCH))
+			while Gtk.events_pending():
+				Gtk.main_iteration()
 			if fileext == None:
 				writable = self.currimg.writable_format()
 				filetype = self.currimg.fileinfo['name']
 			else:
 				writable = False
-				for i in gtk.gdk.pixbuf_get_formats():
+				for i in GdkPixbuf.Pixbuf.get_formats():
 					if fileext in i['extensions']:
 						if i['is_writable']:
 							writable = True
 							filetype = i['name']
 							break
 			if writable:
-				self.currimg.pixbuf_original.save(dest_name, filetype, {'quality': str(self.usettings['quality_save'])})
+				self.currimg.pixbuf_original.savev(dest_name, filetype, ['quality'],[str(self.usettings['quality_save'])])
 				self.currimg.name = dest_name
 				self.image_list[self.curr_img_in_list] = dest_name
 				self.update_title()
 				self.update_statusbar()
 				# Update thumbnail:
-				gobject.idle_add(self.thumbpane_set_image, dest_name, self.curr_img_in_list, True)
+				GObject.idle_add(self.thumbpane_set_image, dest_name, self.curr_img_in_list, True)
 				self.image_modified = False
 			else:
-				error_dialog = gtk.MessageDialog(self.window, gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING, gtk.BUTTONS_YES_NO, _('The %s format is not supported for saving. Do you wish to save the file in a different format?') % filetype)
+				error_dialog = Gtk.MessageDialog(self.window, Gtk.DialogFlags.MODAL, Gtk.MessageType.WARNING, Gtk.ButtonsType.YES_NO, _('The %s format is not supported for saving. Do you wish to save the file in a different format?') % filetype)
 				error_dialog.set_title(_("Save"))
 				response = error_dialog.run()
-				if response == gtk.RESPONSE_YES:
+				if response == Gtk.ResponseType.YES:
 					error_dialog.destroy()
-					while gtk.events_pending():
-						gtk.main_iteration()
+					while Gtk.events_pending():
+						Gtk.main_iteration()
 					self.save_image_as(None)
 				else:
 					error_dialog.destroy()
 		except:
-			error_dialog = gtk.MessageDialog(self.window, gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE, _('Unable to save %s') % dest_name)
+			error_dialog = Gtk.MessageDialog(self.window, Gtk.DialogFlags.MODAL, Gtk.MessageType.WARNING, Gtk.ButtonsType.CLOSE, _('Unable to save %s') % dest_name)
 			error_dialog.set_title(_("Save"))
 			error_dialog.run()
 			error_dialog.destroy()
@@ -1624,21 +1636,21 @@ class Base:
 				self.save_image(None)
 				self.UIManager.get_widget('/MainMenu/FileMenu/Save').set_property('sensitive', temp)
 			elif self.usettings['savemode'] == 2:
-				dialog = gtk.MessageDialog(self.window, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_QUESTION, gtk.BUTTONS_NONE, _("The current image has been modified. Save changes?"))
-				dialog.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
-				dialog.add_button(gtk.STOCK_NO, gtk.RESPONSE_NO)
-				dialog.add_button(gtk.STOCK_SAVE, gtk.RESPONSE_YES)
+				dialog = Gtk.MessageDialog(self.window, Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT, Gtk.MessageType.QUESTION, Gtk.ButtonsType.NONE, _("The current image has been modified. Save changes?"))
+				dialog.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
+				dialog.add_button(Gtk.STOCK_NO, Gtk.ResponseType.NO)
+				dialog.add_button(Gtk.STOCK_SAVE, Gtk.ResponseType.YES)
 				dialog.set_title(_("Save?"))
-				dialog.set_default_response(gtk.RESPONSE_YES)
+				dialog.set_default_response(Gtk.ResponseType.YES)
 				response = dialog.run()
 				dialog.destroy()
-				if response == gtk.RESPONSE_YES:
+				if response == Gtk.ResponseType.YES:
 					temp = self.UIManager.get_widget('/MainMenu/FileMenu/Save').get_property('sensitive')
 					self.UIManager.get_widget('/MainMenu/FileMenu/Save').set_property('sensitive', True)
 					self.save_image(None)
 					self.UIManager.get_widget('/MainMenu/FileMenu/Save').set_property('sensitive', temp)
 					self.image_modified = False
-				elif response == gtk.RESPONSE_NO:
+				elif response == Gtk.ResponseType.NO:
 					self.image_modified = False
 					# Ensures that we don't use the current pixbuf for any preload pixbufs if we are in
 					# the process of loading the previous or next image in the list:
@@ -1651,26 +1663,26 @@ class Base:
 
 	def open_file_remote(self, action):
 		# Prompt user for the url:
-		dialog = gtk.Dialog(_("Open Remote"), self.window, gtk.DIALOG_MODAL, buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
-		location = gtk.Entry()
+		dialog = Gtk.Dialog(_("Open Remote"), self.window, Gtk.DialogFlags.MODAL, buttons=(Gtk.STOCK_CANCEL,Gtk.ResponseType.CANCEL,Gtk.STOCK_OPEN,Gtk.ResponseType.OK))
+		location = Gtk.Entry()
 		location.set_size_request(300, -1)
 		location.set_activates_default(True)
-		hbox = gtk.HBox()
-		hbox.pack_start(gtk.Label(_("Image Location (URL):")), False, False, 5)
+		hbox = Gtk.HBox()
+		hbox.pack_start(Gtk.Label(_("Image Location (URL):")), False, False, 5)
 		hbox.pack_start(location, True, True, 5)
 		dialog.vbox.pack_start(hbox, True, True, 10)
-		dialog.set_default_response(gtk.RESPONSE_OK)
+		dialog.set_default_response(Gtk.ResponseType.OK)
 		dialog.vbox.show_all()
 		dialog.connect('response', self.open_file_remote_response,  location)
 		response = dialog.show()
 
 	def open_file_remote_response(self, dialog, response, location):
-		if response == gtk.RESPONSE_OK:
+		if response == Gtk.ResponseType.OK:
 			filenames = []
 			filenames.append(location.get_text())
 			dialog.destroy()
-			while gtk.events_pending():
-				gtk.main_iteration()
+			while Gtk.events_pending():
+				Gtk.main_iteration()
 			self.expand_filelist_and_load_image(filenames)
 		else:
 			dialog.destroy()
@@ -1683,33 +1695,33 @@ class Base:
 
 	def open_file_or_folder(self, action, isfile):
 		self.stop_now = True
-		while gtk.events_pending():
-			gtk.main_iteration()
+		while Gtk.events_pending():
+			Gtk.main_iteration()
 		self.thumbpane_create_dir()
 		cancel = self.autosave_image()
 		if cancel:
 			return
 		# If isfile = True, file; If isfile = False, folder
-		dialog = gtk.FileChooserDialog(title=_("Open"),action=gtk.FILE_CHOOSER_ACTION_OPEN,buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
+		dialog = Gtk.FileChooserDialog(title=_("Open"),action=Gtk.FileChooserAction.OPEN,buttons=(Gtk.STOCK_CANCEL,Gtk.ResponseType.CANCEL,Gtk.STOCK_OPEN,Gtk.ResponseType.OK))
 		if isfile:
-			filter = gtk.FileFilter()
+			filter = Gtk.FileFilter()
 			filter.set_name(_("Images"))
 			filter.add_pixbuf_formats()
 			dialog.add_filter(filter)
-			filter = gtk.FileFilter()
+			filter = Gtk.FileFilter()
 			filter.set_name(_("All files"))
 			filter.add_pattern("*")
 			dialog.add_filter(filter)
-			preview = gtk.Image()
+			preview = Gtk.Image()
 			dialog.set_preview_widget(preview)
 			dialog.set_use_preview_label(False)
 			dialog.connect("update-preview", self.update_preview, preview)
 			recursivebutton = None
 		else:
-			dialog.set_action(gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER)
-			recursivebutton = gtk.CheckButton(label=_("Include images in subdirectories"))
+			dialog.set_action(Gtk.FileChooserAction.SELECT_FOLDER)
+			recursivebutton = Gtk.CheckButton(label=_("Include images in subdirectories"))
 			dialog.set_extra_widget(recursivebutton)
-		dialog.set_default_response(gtk.RESPONSE_OK)
+		dialog.set_default_response(Gtk.ResponseType.OK)
 		dialog.set_select_multiple(True)
 		if self.usettings['use_last_dir']:
 			if self.usettings['last_dir'] != None:
@@ -1721,15 +1733,15 @@ class Base:
 		response = dialog.show()
 
 	def open_file_or_folder_response(self, dialog, response, isfile, recursivebutton):
-		if response == gtk.RESPONSE_OK:
+		if response == Gtk.ResponseType.OK:
 			if self.usettings['use_last_dir']:
 				self.usettings['last_dir'] = dialog.get_current_folder()
 			if not isfile and recursivebutton.get_property('active'):
 				self.recursive = True
 			filenames = dialog.get_filenames()
 			dialog.destroy()
-			while gtk.events_pending():
-				gtk.main_iteration()
+			while Gtk.events_pending():
+				Gtk.main_iteration()
 			self.expand_filelist_and_load_image(filenames)
 		else:
 			dialog.destroy()
@@ -1743,7 +1755,8 @@ class Base:
 		if pixbuf:
 			preview.set_from_pixbuf(pixbuf)
 		else:
-			pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, 1, 8, 128, 128)
+			pixbuf = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB,True,
+				8, 128, 128)
 			pixbuf.fill(0x00000000)
 			preview.set_from_pixbuf(pixbuf)
 		have_preview = True
@@ -1758,9 +1771,9 @@ class Base:
 			"1 1 1 1",
 			"       c None",
 			" "};"""
-			color = gtk.gdk.Color()
-			pix = gtk.gdk.pixmap_create_from_data(None, pix_data, 1, 1, 1, color, color)
-			invisible = gtk.gdk.Cursor(pix, pix, color, color, 0, 0)
+			color = Gdk.Color(0,0,0,0)
+			pix = Gdk.pixmap_create_from_data(None, pix_data, 1, 1, 1, color, color)
+			invisible = Gdk.Cursor.new(pix, pix, color, color, 0, 0)
 			self.change_cursor(invisible)
 		return False
 
@@ -1776,20 +1789,20 @@ class Base:
 			self.thumbscroll.hide()
 			self.thumbpane.hide()
 			self.window.fullscreen()
-			self.timer_id = gobject.timeout_add(2000, self.hide_cursor)
+			self.timer_id = GObject.timeout_add(2000, self.hide_cursor)
 			self.set_slideshow_sensitivities()
 			if self.usettings['simple_bgcolor']:
-				self.layout.modify_bg(gtk.STATE_NORMAL, self.bgcolor)
+				self.layout.modify_bg(Gtk.StateType.NORMAL, self.bgcolor)
 		else:
 			if self.usettings['simple_bgcolor']:
-				self.layout.modify_bg(gtk.STATE_NORMAL, None)
+				self.layout.modify_bg(Gtk.StateType.NORMAL, None)
 			self.leave_fullscreen(action)
 
 	def leave_fullscreen(self, action):
 		if self.fullscreen_mode:
 			self.slideshow_controls_visible = False
-			self.slideshow_window.hide_all()
-			self.slideshow_window2.hide_all()
+			self.slideshow_window.hide()
+			self.slideshow_window2.hide()
 			self.fullscreen_mode = False
 			self.UIManager.get_widget('/Popup/Full Screen').show()
 			self.UIManager.get_widget('/Popup/Exit Full Screen').hide()
@@ -1807,7 +1820,7 @@ class Base:
 			self.change_cursor(None)
 			self.set_slideshow_sensitivities()
 			if self.usettings['simple_bgcolor']:
-				self.layout.modify_bg(gtk.STATE_NORMAL, None)
+				self.layout.modify_bg(Gtk.StateType.NORMAL, None)
 
 	def toggle_status_bar(self, action):
 		if self.statusbar.get_property('visible'):
@@ -1830,7 +1843,7 @@ class Base:
 			self.thumbpane.show()
 			self.usettings['thumbpane_show'] = True
 			self.stop_now = False
-			gobject.idle_add(self.thumbpane_update_images, True, self.curr_img_in_list)
+			GObject.idle_add(self.thumbpane_update_images, True, self.curr_img_in_list)
 		self.image_zoom_fit_update()
 
 	def toggle_toolbar(self, action):
@@ -1860,63 +1873,63 @@ class Base:
 		self.statusbar2.push(self.statusbar2.get_context_id(""), status_text)
 
 	def show_custom_actions(self, action):
-		self.actions_dialog = gtk.Dialog(title=_("Configure Custom Actions"), parent=self.window)
-		self.actions_dialog.set_has_separator(False)
+		self.actions_dialog = Gtk.Dialog(title=_("Configure Custom Actions"), parent=self.window)
+		#self.actions_dialog.set_has_separator(False)
 		self.actions_dialog.set_resizable(False)
-		table_actions = gtk.Table(13, 2, False)
-		table_actions.attach(gtk.Label(), 1, 2, 1, 2, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
-		actionscrollwindow = gtk.ScrolledWindow()
-		self.actionstore = gtk.ListStore(str, str, str)
-		self.actionwidget = gtk.TreeView()
+		table_actions = Gtk.Table(13, 2, False)
+		table_actions.attach(Gtk.Label(), 1, 2, 1, 2, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		actionscrollwindow = Gtk.ScrolledWindow()
+		self.actionstore = Gtk.ListStore(str, str, str)
+		self.actionwidget = Gtk.TreeView()
 		self.actionwidget.set_enable_search(False)
 		self.actionwidget.set_rules_hint(True)
 		self.actionwidget.connect('row-activated', self.edit_custom_action2)
 		actionscrollwindow.add(self.actionwidget)
-		actionscrollwindow.set_shadow_type(gtk.SHADOW_IN)
-		actionscrollwindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+		actionscrollwindow.set_shadow_type(Gtk.ShadowType.IN)
+		actionscrollwindow.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
 		actionscrollwindow.set_size_request(500, 200)
 		self.actionwidget.set_model(self.actionstore)
-		self.cell = gtk.CellRendererText()
-		self.cellbool = gtk.CellRendererPixbuf()
-		self.tvcolumn0 = gtk.TreeViewColumn(_("Batch"))
-		self.tvcolumn1 = gtk.TreeViewColumn(_("Action"), self.cell, markup=0)
-		self.tvcolumn2 = gtk.TreeViewColumn(_("Shortcut"))
-		self.tvcolumn1.set_max_width(self.actionwidget.size_request()[0] - self.tvcolumn0.get_width() - self.tvcolumn2.get_width())
+		self.cell = Gtk.CellRendererText()
+		self.cellbool = Gtk.CellRendererPixbuf()
+		self.tvcolumn0 = Gtk.TreeViewColumn(_("Batch"))
+		self.tvcolumn1 = Gtk.TreeViewColumn(_("Action"), self.cell, markup=0)
+		self.tvcolumn2 = Gtk.TreeViewColumn(_("Shortcut"))
+		self.tvcolumn1.set_max_width(self.actionwidget.size_request().width - self.tvcolumn0.get_width() - self.tvcolumn2.get_width())
 		self.actionwidget.append_column(self.tvcolumn0)
 		self.actionwidget.append_column(self.tvcolumn1)
 		self.actionwidget.append_column(self.tvcolumn2)
 		self.populate_treeview()
 		if len(self.usettings['action_names']) > 0:
 			self.actionwidget.get_selection().select_path(0)
-		vbox_actions = gtk.VBox()
-		addbutton = gtk.Button("", gtk.STOCK_ADD)
+		vbox_actions = Gtk.VBox()
+		addbutton = Gtk.Button("", Gtk.STOCK_ADD)
 		addbutton.get_child().get_child().get_children()[1].set_text('')
 		addbutton.connect('clicked', self.add_custom_action, self.actionwidget)
 		addbutton.set_tooltip_text(_("Add action"))
-		editbutton = gtk.Button("", gtk.STOCK_EDIT)
+		editbutton = Gtk.Button("", Gtk.STOCK_EDIT)
 		editbutton.get_child().get_child().get_children()[1].set_text('')
 		editbutton.connect('clicked', self.edit_custom_action, self.actionwidget)
 		editbutton.set_tooltip_text(_("Edit selected action."))
-		removebutton = gtk.Button("", gtk.STOCK_REMOVE)
+		removebutton = Gtk.Button("", Gtk.STOCK_REMOVE)
 		removebutton.get_child().get_child().get_children()[1].set_text('')
 		removebutton.connect('clicked', self.remove_custom_action)
 		removebutton.set_tooltip_text(_("Remove selected action."))
-		upbutton = gtk.Button("", gtk.STOCK_GO_UP)
+		upbutton = Gtk.Button("", Gtk.STOCK_GO_UP)
 		upbutton.get_child().get_child().get_children()[1].set_text('')
 		upbutton.connect('clicked', self.custom_action_move_up, self.actionwidget)
 		upbutton.set_tooltip_text(_("Move selected action up."))
-		downbutton = gtk.Button("", gtk.STOCK_GO_DOWN)
+		downbutton = Gtk.Button("", Gtk.STOCK_GO_DOWN)
 		downbutton.get_child().get_child().get_children()[1].set_text('')
 		downbutton.connect('clicked', self.custom_action_move_down, self.actionwidget)
 		downbutton.set_tooltip_text(_("Move selected action down."))
-		vbox_buttons = gtk.VBox()
-		propertyinfo = gtk.Label()
+		vbox_buttons = Gtk.VBox()
+		propertyinfo = Gtk.Label()
 		propertyinfo.set_markup('<small>' + _("Parameters") + ':\n<span font_family="Monospace">%F</span> - ' + _("File path, name, and extension") + '\n<span font_family="Monospace">%P</span> - ' + _("File path") + '\n<span font_family="Monospace">%N</span> - ' + _("File name without file extension") + '\n<span font_family="Monospace">%E</span> - ' + _("File extension (i.e. \".png\")") + '\n<span font_family="Monospace">%L</span> - ' + _("List of files, space-separated") + '</small>')
 		propertyinfo.set_alignment(0, 0)
-		actioninfo = gtk.Label()
+		actioninfo = Gtk.Label()
 		actioninfo.set_markup('<small>' + _("Operations") + ':\n<span font_family="Monospace">[NEXT]</span> - ' + _("Go to next image") + '\n<span font_family="Monospace">[PREV]</span> - ' + _("Go to previous image") +'</small>')
 		actioninfo.set_alignment(0, 0)
-		hbox_info = gtk.HBox()
+		hbox_info = Gtk.HBox()
 		hbox_info.pack_start(propertyinfo, False, False, 15)
 		hbox_info.pack_start(actioninfo, False, False, 15)
 		vbox_buttons.pack_start(addbutton, False, False, 5)
@@ -1924,33 +1937,33 @@ class Base:
 		vbox_buttons.pack_start(removebutton, False, False, 5)
 		vbox_buttons.pack_start(upbutton, False, False, 5)
 		vbox_buttons.pack_start(downbutton, False, False, 0)
-		hbox_top = gtk.HBox()
+		hbox_top = Gtk.HBox()
 		hbox_top.pack_start(actionscrollwindow, True, True, 5)
 		hbox_top.pack_start(vbox_buttons, False, False, 5)
 		vbox_actions.pack_start(hbox_top, True, True, 5)
 		vbox_actions.pack_start(hbox_info, False, False, 5)
-		hbox_instructions = gtk.HBox()
-		info_image = gtk.Image()
-		info_image.set_from_stock(gtk.STOCK_DIALOG_INFO, gtk.ICON_SIZE_BUTTON)
+		hbox_instructions = Gtk.HBox()
+		info_image = Gtk.Image()
+		info_image.set_from_stock(Gtk.STOCK_DIALOG_INFO, Gtk.IconSize.BUTTON)
 		hbox_instructions.pack_start(info_image, False, False, 5)
-		instructions = gtk.Label(_("Here you can define custom actions with shortcuts. Actions use the built-in parameters and operations listed below and can have multiple statements separated by a semicolon. Batch actions apply to all images in the list."))
+		instructions = Gtk.Label(label=_("Here you can define custom actions with shortcuts. Actions use the built-in parameters and operations listed below and can have multiple statements separated by a semicolon. Batch actions apply to all images in the list."))
 		instructions.set_line_wrap(True)
 		instructions.set_alignment(0, 0.5)
 		hbox_instructions.pack_start(instructions, False, False, 5)
-		table_actions.attach(hbox_instructions, 1, 3, 2, 3,  gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 5, 0)
-		table_actions.attach(gtk.Label(), 1, 3, 3, 4,  gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 15, 0)
-		table_actions.attach(vbox_actions, 1, 3, 4, 12, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 15, 0)
-		table_actions.attach(gtk.Label(), 1, 3, 12, 13,  gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 15, 0)
+		table_actions.attach(hbox_instructions, 1, 3, 2, 3,  Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 5, 0)
+		table_actions.attach(Gtk.Label(), 1, 3, 3, 4,  Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 15, 0)
+		table_actions.attach(vbox_actions, 1, 3, 4, 12, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 15, 0)
+		table_actions.attach(Gtk.Label(), 1, 3, 12, 13,  Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 15, 0)
 		self.actions_dialog.vbox.pack_start(table_actions, False, False, 0)
 		# Show dialog:
 		self.actions_dialog.vbox.show_all()
-		instructions.set_size_request(self.actions_dialog.size_request()[0]-50, -1)
-		close_button = self.actions_dialog.add_button(gtk.STOCK_CLOSE, gtk.RESPONSE_CLOSE)
+		instructions.set_size_request(self.actions_dialog.size_request().width-50, -1)
+		close_button = self.actions_dialog.add_button(Gtk.STOCK_CLOSE, Gtk.ResponseType.CLOSE)
 		close_button.grab_focus()
 		self.actions_dialog.run()
 		self.refresh_custom_actions_menu()
-		while gtk.events_pending():
-			gtk.main_iteration()
+		while Gtk.events_pending():
+			Gtk.main_iteration()
 		if len(self.image_list) == 0:
 			self.set_image_sensitivities(False)
 		self.actions_dialog.destroy()
@@ -1969,44 +1982,44 @@ class Base:
 
 	def open_custom_action_dialog(self, add_call, name, command, shortcut, batch, treeview):
 		if add_call:
-			self.dialog_name = gtk.Dialog(_("Add Custom Action"), self.actions_dialog, gtk.DIALOG_MODAL, (gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+			self.dialog_name = Gtk.Dialog(_("Add Custom Action"), self.actions_dialog, Gtk.DialogFlags.MODAL, (Gtk.STOCK_CANCEL, Gtk.ResponseType.REJECT, Gtk.STOCK_OK, Gtk.ResponseType.ACCEPT))
 		else:
-			self.dialog_name = gtk.Dialog(_("Edit Custom Action"), self.actions_dialog, gtk.DIALOG_MODAL, (gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+			self.dialog_name = Gtk.Dialog(_("Edit Custom Action"), self.actions_dialog, Gtk.DialogFlags.MODAL, (Gtk.STOCK_CANCEL, Gtk.ResponseType.REJECT, Gtk.STOCK_OK, Gtk.ResponseType.ACCEPT))
 		self.dialog_name.set_modal(True)
-		table = gtk.Table(2, 4, False)
-		action_name_label = gtk.Label(_("Action Name:"))
+		table = Gtk.Table(2, 4, False)
+		action_name_label = Gtk.Label(label=_("Action Name:"))
 		action_name_label.set_alignment(0, 0.5)
-		action_command_label = gtk.Label(_("Command:"))
+		action_command_label = Gtk.Label(label=_("Command:"))
 		action_command_label.set_alignment(0, 0.5)
-		shortcut_label = gtk.Label(_("Shortcut:"))
+		shortcut_label = Gtk.Label(label=_("Shortcut:"))
 		shortcut_label.set_alignment(0, 0.5)
-		table.attach(action_name_label, 0, 1, 0, 1, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 15, 0)
-		table.attach(action_command_label, 0, 1, 1, 2, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 15, 0)
-		table.attach(shortcut_label, 0, 1, 2, 3, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 15, 0)
-		action_name = gtk.Entry()
+		table.attach(action_name_label, 0, 1, 0, 1, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 15, 0)
+		table.attach(action_command_label, 0, 1, 1, 2, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 15, 0)
+		table.attach(shortcut_label, 0, 1, 2, 3, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 15, 0)
+		action_name = Gtk.Entry()
 		action_name.set_text(name)
-		action_command = gtk.Entry()
+		action_command = Gtk.Entry()
 		action_command.set_text(command)
-		table.attach(action_name, 1, 2, 0, 1, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 15, 0)
-		table.attach(action_command, 1, 2, 1, 2, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 15, 0)
-		self.shortcut = gtk.Button(shortcut)
+		table.attach(action_name, 1, 2, 0, 1, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 15, 0)
+		table.attach(action_command, 1, 2, 1, 2, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 15, 0)
+		self.shortcut = Gtk.Button(shortcut)
 		self.shortcut.connect('clicked', self.shortcut_clicked)
-		table.attach(self.shortcut, 1, 2, 2, 3, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 15, 0)
-		batchmode = gtk.CheckButton(_("Perform action on all images (Batch)"))
+		table.attach(self.shortcut, 1, 2, 2, 3, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 15, 0)
+		batchmode = Gtk.CheckButton(_("Perform action on all images (Batch)"))
 		batchmode.set_active(batch)
-		table.attach(batchmode, 0, 2, 3, 4, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 15, 0)
+		table.attach(batchmode, 0, 2, 3, 4, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 15, 0)
 		self.dialog_name.vbox.pack_start(table, False, False, 5)
 		self.dialog_name.vbox.show_all()
 		self.dialog_name.connect('response', self.dialog_name_response, add_call, action_name, action_command, self.shortcut, batchmode, treeview)
 		self.dialog_name.run()
 
 	def dialog_name_response(self, dialog, response, add_call, action_name, action_command, shortcut, batchmode, treeview):
-		if response == gtk.RESPONSE_ACCEPT:
+		if response == Gtk.ResponseType.ACCEPT:
 			if not (action_command.get_text() == "" or action_name.get_text() == "" or self.shortcut.get_label() == "None"):
 				name = action_name.get_text()
 				command = action_command.get_text()
 				if ((("[NEXT]" in command.strip()) and command.strip()[-6:] != "[NEXT]") or (("[PREV]" in command.strip()) and command.strip()[-6:] != "[PREV]") ):
-					error_dialog = gtk.MessageDialog(self.actions_dialog, gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE, _('[PREV] and [NEXT] are only valid alone or at the end of the command'))
+					error_dialog = Gtk.MessageDialog(self.actions_dialog, Gtk.DialogFlags.MODAL, Gtk.MessageType.WARNING, Gtk.ButtonsType.CLOSE, _('[PREV] and [NEXT] are only valid alone or at the end of the command'))
 					error_dialog.set_title(_("Invalid Custom Action"))
 					error_dialog.run()
 					error_dialog.destroy()
@@ -2030,18 +2043,19 @@ class Base:
 				if add_call:
 					rownum = len(self.usettings['action_names'])-1
 				treeview.get_selection().select_path(rownum)
-				while gtk.events_pending():
-					gtk.main_iteration()
+				while Gtk.events_pending():
+					Gtk.main_iteration()
 				# Keep item in visible rect:
 				visible_rect = treeview.get_visible_rect()
-				row_rect = treeview.get_background_area(rownum, self.tvcolumn1)
+				p = Gtk.TreePath.new_from_string(str(rownum))
+				row_rect = treeview.get_background_area(p, self.tvcolumn1)
 				if row_rect.y + row_rect.height > visible_rect.height:
 					top_coord = (row_rect.y + row_rect.height - visible_rect.height) + visible_rect.y
 					treeview.scroll_to_point(-1, top_coord)
 				elif row_rect.y < 0:
 					treeview.scroll_to_cell(rownum)
 			else:
-				error_dialog = gtk.MessageDialog(self.actions_dialog, gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE, _('Incomplete custom action specified.'))
+				error_dialog = Gtk.MessageDialog(self.actions_dialog, Gtk.DialogFlags.MODAL, Gtk.MessageType.WARNING, Gtk.ButtonsType.CLOSE, _('Incomplete custom action specified.'))
 				error_dialog.set_title(_("Invalid Custom Action"))
 				error_dialog.run()
 				error_dialog.destroy()
@@ -2071,12 +2085,13 @@ class Base:
 				# Repopulate treeview and keep item selected:
 				self.populate_treeview()
 				selection.select_path((rownum+1,))
-				while gtk.events_pending():
-					gtk.main_iteration()
+				while Gtk.events_pending():
+					Gtk.main_iteration()
 				# Keep item in visible rect:
 				rownum = rownum + 1
 				visible_rect = treeview.get_visible_rect()
-				row_rect = treeview.get_background_area(rownum, self.tvcolumn1)
+				p = Gtk.TreeView.new_from_string(str(rownum))
+				row_rect = treeview.get_background_area(p, self.tvcolumn1)
 				if row_rect.y + row_rect.height > visible_rect.height:
 					top_coord = (row_rect.y + row_rect.height - visible_rect.height) + visible_rect.y
 					treeview.scroll_to_point(-1, top_coord)
@@ -2106,12 +2121,13 @@ class Base:
 				# Repopulate treeview and keep item selected:
 				self.populate_treeview()
 				selection.select_path((rownum-1,))
-				while gtk.events_pending():
-					gtk.main_iteration()
+				while Gtk.events_pending():
+					Gtk.main_iteration()
 				# Keep item in visible rect:
 				rownum = rownum - 1
 				visible_rect = treeview.get_visible_rect()
-				row_rect = treeview.get_background_area(rownum, self.tvcolumn1)
+				p = Gtk.TreeView.new_from_string(str(rownum))
+				row_rect = treeview.get_background_area(p, self.tvcolumn1)
 				if row_rect.y + row_rect.height > visible_rect.height:
 					top_coord = (row_rect.y + row_rect.height - visible_rect.height) + visible_rect.y
 					treeview.scroll_to_point(-1, top_coord)
@@ -2119,9 +2135,9 @@ class Base:
 					treeview.scroll_to_cell(rownum)
 
 	def shortcut_clicked(self, widget):
-		self.dialog_shortcut = gtk.Dialog(_("Action Shortcut"), self.dialog_name, gtk.DIALOG_MODAL, (gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT))
-		self.shortcut_label = gtk.Label(_("Press the desired shortcut for the action."))
-		hbox = gtk.HBox()
+		self.dialog_shortcut = Gtk.Dialog(_("Action Shortcut"), self.dialog_name, Gtk.DialogFlags.MODAL, (Gtk.STOCK_CANCEL, Gtk.ResponseType.REJECT))
+		self.shortcut_label = Gtk.Label(label=_("Press the desired shortcut for the action."))
+		hbox = Gtk.HBox()
 		hbox.pack_start(self.shortcut_label, False, False, 15)
 		self.dialog_shortcut.vbox.pack_start(hbox, False, False, 5)
 		self.dialog_shortcut.vbox.show_all()
@@ -2130,21 +2146,21 @@ class Base:
 		self.dialog_shortcut.destroy()
 
 	def shortcut_keypress(self, widget, event):
-		shortcut = gtk.accelerator_name(event.keyval, event.state)
+		shortcut = Gtk.accelerator_name(event.keyval, event.get_state())
 		if "<Mod2>" in shortcut:
 			shortcut = shortcut.replace("<Mod2>", "")
 		if shortcut[(len(shortcut)-2):len(shortcut)] != "_L" and shortcut[(len(shortcut)-2):len(shortcut)] != "_R":
 			# Validate to make sure the shortcut hasn't already been used:
 			for i in range(len(self.keys)):
 				if shortcut == self.keys[i][1]:
-					error_dialog = gtk.MessageDialog(self.dialog_shortcut, gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE, _('The shortcut \'%(shortcut)s\' is already used for \'%(key)s\'.') % {'shortcut': shortcut, 'key': self.keys[i][0]})
+					error_dialog = Gtk.MessageDialog(self.dialog_shortcut, Gtk.DialogFlags.MODAL, Gtk.MessageType.WARNING, Gtk.ButtonsType.CLOSE, _('The shortcut \'%(shortcut)s\' is already used for \'%(key)s\'.') % {'shortcut': shortcut, 'key': self.keys[i][0]})
 					error_dialog.set_title(_("Invalid Shortcut"))
 					error_dialog.run()
 					error_dialog.destroy()
 					return
 			for i in range(len(self.usettings['action_shortcuts'])):
 				if shortcut == self.usettings['action_shortcuts'][i]:
-					error_dialog = gtk.MessageDialog(self.dialog_shortcut, gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE, _('The shortcut \'%(shortcut)s\' is already used for \'%(key)s\'.') % {'shortcut': shortcut, 'key': self.usettings['action_names'][i]})
+					error_dialog = Gtk.MessageDialog(self.dialog_shortcut, Gtk.DialogFlags.MODAL, Gtk.MessageType.WARNING, Gtk.ButtonsType.CLOSE, _('The shortcut \'%(shortcut)s\' is already used for \'%(key)s\'.') % {'shortcut': shortcut, 'key': self.usettings['action_names'][i]})
 					error_dialog.set_title(_("Invalid Shortcut"))
 					error_dialog.run()
 					error_dialog.destroy()
@@ -2167,16 +2183,16 @@ class Base:
 		self.actionstore.clear()
 		for i in range(len(self.usettings['action_names'])):
 			if self.usettings['action_batch'][i]:
-				pb = gtk.STOCK_APPLY
+				pb = Gtk.STOCK_APPLY
 			else:
 				pb = None
 			self.actionstore.append([pb, '<big><b>' + self.usettings['action_names'][i].replace('&','&amp;') + '</b></big>\n<small>' + self.usettings['action_commands'][i].replace('&','&amp;') + '</small>', self.usettings['action_shortcuts'][i]])
 		self.tvcolumn0.clear()
 		self.tvcolumn1.clear()
 		self.tvcolumn2.clear()
-		self.tvcolumn0.pack_start(self.cellbool)
-		self.tvcolumn1.pack_start(self.cell)
-		self.tvcolumn2.pack_start(self.cell)
+		self.tvcolumn0.pack_start(self.cellbool, True)
+		self.tvcolumn1.pack_start(self.cell, True)
+		self.tvcolumn2.pack_start(self.cell, True)
 		self.tvcolumn0.add_attribute(self.cellbool, "stock-id", 0)
 		self.tvcolumn1.set_attributes(self.cell, markup=1)
 		self.tvcolumn2.set_attributes(self.cell, text=2)
@@ -2187,75 +2203,75 @@ class Base:
 		if cancel:
 			return
 		# Dialog:
-		dialog = gtk.Dialog(_("Screenshot"), self.window, gtk.DIALOG_MODAL, (gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT))
-		snapbutton = dialog.add_button(_("_Snap"), gtk.RESPONSE_ACCEPT)
-		snapimage = gtk.Image()
-		snapimage.set_from_stock(gtk.STOCK_OK, gtk.ICON_SIZE_BUTTON)
+		dialog = Gtk.Dialog(_("Screenshot"), self.window, Gtk.DialogFlags.MODAL, (Gtk.STOCK_CANCEL, Gtk.ResponseType.REJECT))
+		snapbutton = dialog.add_button(_("_Snap"), Gtk.ResponseType.ACCEPT)
+		snapimage = Gtk.Image()
+		snapimage.set_from_stock(Gtk.STOCK_OK, Gtk.IconSize.BUTTON)
 		snapbutton.set_image(snapimage)
-		loc = gtk.Label()
+		loc = Gtk.Label()
 		loc.set_markup('<b>' + _('Location') + '</b>')
 		loc.set_alignment(0, 0)
-		area = gtk.RadioButton()
-		area1 = gtk.RadioButton(group=area, label=_("Entire screen"))
-		area2 = gtk.RadioButton(group=area, label=_("Window under pointer"))
+		area = Gtk.RadioButton()
+		area1 = Gtk.RadioButton(group=area, label=_("Entire screen"))
+		area2 = Gtk.RadioButton(group=area, label=_("Window under pointer"))
 		if not HAS_XMOUSE:
 			area2.set_sensitive(False)
 		area1.set_active(True)
-		de = gtk.Label()
+		de = Gtk.Label()
 		de.set_markup('<b>' + _("Delay") + '</b>')
 		de.set_alignment(0, 0)
-		delaybox = gtk.HBox()
-		adj = gtk.Adjustment(self.usettings['screenshot_delay'], 0, 30, 1, 10, 0)
-		delay = gtk.SpinButton(adj, 0, 0)
+		delaybox = Gtk.HBox()
+		adj = Gtk.Adjustment(self.usettings['screenshot_delay'], 0, 30, 1, 10, 0)
+		delay = Gtk.SpinButton.new(adj, 0, 0)
 		delay.set_numeric(True)
-		delay.set_update_policy(gtk.UPDATE_IF_VALID)
+		delay.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
 		delay.set_wrap(False)
-		delaylabel = gtk.Label(_(" seconds"))
-		delaybox.pack_start(delay, False)
-		delaybox.pack_start(delaylabel, False)
-		table = gtk.Table()
-		table.attach(gtk.Label(), 1, 2, 1, 2, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
-		table.attach(loc, 1, 2, 2, 3, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 15, 0)
-		table.attach(gtk.Label(), 1, 2, 3, 4, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
-		table.attach(area1, 1, 2, 4, 5, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table.attach(area2, 1, 2, 5, 6, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table.attach(gtk.Label(), 1, 2, 6, 7, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table.attach(de, 1, 2, 7, 8,  gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 15, 0)
-		table.attach(gtk.Label(), 1, 2, 8, 9,  gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table.attach(delaybox, 1, 2, 9, 10, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table.attach(gtk.Label(), 1, 2, 10, 11,  gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		dialog.vbox.pack_start(table)
-		dialog.set_default_response(gtk.RESPONSE_ACCEPT)
+		delaylabel = Gtk.Label(label=_(" seconds"))
+		delaybox.pack_start(delay, False, False, 0)
+		delaybox.pack_start(delaylabel, False, False, 0)
+		table = Gtk.Table()
+		table.attach(Gtk.Label(), 1, 2, 1, 2, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		table.attach(loc, 1, 2, 2, 3, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 15, 0)
+		table.attach(Gtk.Label(), 1, 2, 3, 4, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		table.attach(area1, 1, 2, 4, 5, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table.attach(area2, 1, 2, 5, 6, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table.attach(Gtk.Label(), 1, 2, 6, 7, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table.attach(de, 1, 2, 7, 8,  Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 15, 0)
+		table.attach(Gtk.Label(), 1, 2, 8, 9,  Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table.attach(delaybox, 1, 2, 9, 10, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table.attach(Gtk.Label(), 1, 2, 10, 11,  Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		dialog.vbox.pack_start(table, True, True, 0)
+		dialog.set_default_response(Gtk.ResponseType.ACCEPT)
 		dialog.vbox.show_all()
 		response = dialog.run()
-		if response == gtk.RESPONSE_ACCEPT:
+		if response == Gtk.ResponseType.ACCEPT:
 			dialog.destroy()
-			while gtk.events_pending():
-				gtk.main_iteration()
+			while Gtk.events_pending():
+				Gtk.main_iteration()
 			self.usettings['screenshot_delay'] = delay.get_value_as_int()
-			gobject.timeout_add(int(self.usettings['screenshot_delay']*1000), self._screenshot_grab, area1.get_active())
+			GObject.timeout_add(int(self.usettings['screenshot_delay']*1000), self._screenshot_grab, area1.get_active())
 		else:
 			dialog.destroy()
 
 	def _screenshot_grab(self, entire_screen):
-		root_win = gtk.gdk.get_default_root_window()
+		root_win = Gdk.get_default_root_window()
 		if entire_screen:
 			x = 0
 			y = 0
-			width = gtk.gdk.screen_width()
-			height = gtk.gdk.screen_height()
+			width = Gdk.Screen.width()
+			height = Gdk.Screen.height()
 		else:
 			(x, y, width, height) = xmouse.geometry()
-		pix = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, True, 8, width, height)
-		pix = pix.get_from_drawable(root_win, gtk.gdk.colormap_get_system(), x, y, 0, 0, width, height)
+		pix = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, width, height)
+		pix = pix.get_from_drawable(root_win, Gdk.colormap_get_system(), x, y, 0, 0, width, height)
 		# Save as /tmp/mirage-<random>/filename.ext
 		tmpdir = tempfile.mkdtemp(prefix="mirage-") + "/"
 		tmpfile = tmpdir + "screenshot.png"
-		pix.save(tmpfile, 'png')
+		pix.savev(tmpfile, 'png')
 		# Load file:
 		self.image_list = [tmpfile]
 		self.curr_img_in_list = 0
-		gobject.idle_add(self.load_new_image2, False, False, False, False, True)
+		GObject.idle_add(self.load_new_image2, False, False, False, False, True)
 		self.update_statusbar()
 		self.set_go_navigation_sensitivities(False)
 		self.set_slideshow_sensitivities()
@@ -2264,11 +2280,11 @@ class Base:
 		self.window.present()
 
 	def show_properties(self, action):
-		show_props = gtk.Dialog(_("Properties"), self.window)
-		show_props.set_has_separator(False)
+		show_props = Gtk.Dialog(_("Properties"), self.window)
+		#show_props.set_has_separator(False)
 		show_props.set_resizable(False)
-		table = gtk.Table(3, 4, False)
-		image = gtk.Image()
+		table = Gtk.Table(3, 4, False)
+		image = Gtk.Image()
 		if self.currimg.animation:
 			pixbuf, image_width, image_height = self.get_pixbuf_of_size(self.currimg.pixbuf_original.get_static_image(), 180, self.zoom_quality)
 		else:
@@ -2276,26 +2292,26 @@ class Base:
 		image.set_from_pixbuf(self.pixbuf_add_border(pixbuf))
 
 		# The generic info
-		vbox_left = gtk.VBox()
-		title = gtk.Label(_("Generic:"))
+		vbox_left = Gtk.VBox()
+		title = Gtk.Label(label=_("Generic:"))
 		title.set_alignment(1, 1)
-		filename = gtk.Label(_("File name:"))
+		filename = Gtk.Label(label=_("File name:"))
 		filename.set_alignment(1, 1)
-		filedate = gtk.Label(_("File modified:"))
+		filedate = Gtk.Label(label=_("File modified:"))
 		filedate.set_alignment(1, 1)
-		imagesize = gtk.Label(_("Dimensions:"))
+		imagesize = Gtk.Label(label=_("Dimensions:"))
 		imagesize.set_alignment(1, 1)
-		filesize = gtk.Label(_("File size:"))
+		filesize = Gtk.Label(label=_("File size:"))
 		filesize.set_alignment(1, 1)
-		filetype = gtk.Label(_("File type:"))
+		filetype = Gtk.Label(label=_("File type:"))
 		filetype.set_alignment(1, 1)
-		transparency = gtk.Label(_("Transparency:"))
+		transparency = Gtk.Label(label=_("Transparency:"))
 		transparency.set_alignment(1, 1)
-		animation = gtk.Label(_("Animation:"))
+		animation = Gtk.Label(label=_("Animation:"))
 		animation.set_alignment(1, 1)
-		bits = gtk.Label(_("Bits per sample:"))
+		bits = Gtk.Label(label=_("Bits per sample:"))
 		bits.set_alignment(1, 1)
-		channels = gtk.Label(_("Channels:"))
+		channels = Gtk.Label(label=_("Channels:"))
 		channels.set_alignment(1, 1)
 		vbox_left.pack_start(title, False, False, 2)
 		vbox_left.pack_start(filename, False, False, 2)
@@ -2307,23 +2323,23 @@ class Base:
 		vbox_left.pack_start(animation, False, False, 2)
 		vbox_left.pack_start(bits, False, False, 2)
 		vbox_left.pack_start(channels, False, False, 2)
-		vbox_right = gtk.VBox()
+		vbox_right = Gtk.VBox()
 		filestat = os.stat(self.currimg.name)
-		filename2 = gtk.Label(os.path.basename(self.currimg.name))
-		filedate2 = gtk.Label(time.strftime('%Y/%m/%d  %H:%M', time.localtime(filestat[stat.ST_MTIME])))
-		imagesize2 = gtk.Label(str(self.currimg.pixbuf_original.get_width()) + "x" + str(self.currimg.pixbuf_original.get_height()))
-		filetype2 = gtk.Label(self.currimg.fileinfo['mime_types'][0])
-		filesize2 = gtk.Label(str(filestat[stat.ST_SIZE]/1000) + "KB")
+		filename2 = Gtk.Label(label=os.path.basename(self.currimg.name))
+		filedate2 = Gtk.Label(time.strftime('%Y/%m/%d  %H:%M', time.localtime(filestat[stat.ST_MTIME])))
+		imagesize2 = Gtk.Label(label=str(self.currimg.pixbuf_original.get_width()) + "x" + str(self.currimg.pixbuf_original.get_height()))
+		filetype2 = Gtk.Label(label=self.currimg.fileinfo['mime_types'][0])
+		filesize2 = Gtk.Label(label=str(filestat[stat.ST_SIZE]/1000) + "KB")
 		if not self.currimg.animation and pixbuf.get_has_alpha():
-			transparency2 = gtk.Label(_("Yes"))
+			transparency2 = Gtk.Label(label=_("Yes"))
 		else:
-			transparency2 = gtk.Label(_("No"))
+			transparency2 = Gtk.Label(label=_("No"))
 		if self.currimg.animation:
-			animation2 = gtk.Label(_("Yes"))
+			animation2 = Gtk.Label(label=_("Yes"))
 		else:
-			animation2 = gtk.Label(_("No"))
-		bits2 = gtk.Label(str(pixbuf.get_bits_per_sample()))
-		channels2 = gtk.Label(str(pixbuf.get_n_channels()))
+			animation2 = Gtk.Label(label=_("No"))
+		bits2 = Gtk.Label(label=str(pixbuf.get_bits_per_sample()))
+		channels2 = Gtk.Label(label=str(pixbuf.get_n_channels()))
 		filename2.set_alignment(0, 1)
 		filedate2.set_alignment(0, 1)
 		imagesize2.set_alignment(0, 1)
@@ -2333,7 +2349,7 @@ class Base:
 		animation2.set_alignment(0, 1)
 		bits2.set_alignment(0, 1)
 		channels2.set_alignment(0, 1)
-		empty = gtk.Label(" ") # An empty label to align the rows correctly
+		empty = Gtk.Label(label=" ") # An empty label to align the rows correctly
 		vbox_right.pack_start(empty, False, False, 2)
 		vbox_right.pack_start(filename2, False, False, 2)
 		vbox_right.pack_start(filedate2, False, False, 2)
@@ -2344,7 +2360,7 @@ class Base:
 		vbox_right.pack_start(animation2, False, False, 2)
 		vbox_right.pack_start(bits2, False, False, 2)
 		vbox_right.pack_start(channels2, False, False, 2)
-		hbox = gtk.HBox()
+		hbox = Gtk.HBox()
 		hbox.pack_start(vbox_left, False, False, 3)
 		hbox.pack_start(vbox_right, False, False, 3)
 		includes_exif = False
@@ -2354,12 +2370,12 @@ class Base:
 			if ([x for x in exifd.exif_keys if "Exif.Photo" in x]):
 				includes_exif = True
 				# The exif data
-				exif_lbox = gtk.VBox()
-				exif_title = gtk.Label(_("Exifdata"))
+				exif_lbox = Gtk.VBox()
+				exif_title = Gtk.Label(label=_("Exifdata"))
 				exif_title.set_alignment(1,1)
 				#for line alignment
-				exif_vbox = gtk.VBox()
-				exif_empty = gtk.Label(" ")
+				exif_vbox = Gtk.VBox()
+				exif_empty = Gtk.Label(label=" ")
 
 				expo_l, expo_v = self.exif_return_label(exifd, _("Exposure time:"), _("%s sec"),"Exif.Photo.ExposureTime", "rat_frac")
 				aperture_l, aperture_v = self.exif_return_label(exifd, _("Aperture:"), _("%s"),"Exif.Photo.FNumber", "rat_float")
@@ -2386,24 +2402,24 @@ class Base:
 				exif_vbox.pack_start(model_v, False, False, 2)
 				exif_vbox.pack_start(date_v, False, False, 2)
 
-				hbox2 = gtk.HBox()
+				hbox2 = Gtk.HBox()
 				hbox2.pack_start(exif_lbox, False, False, 2)
 				hbox2.pack_start(exif_vbox, False, False, 2)
 
 		#Show the box
-		table.attach(image, 1, 2, 1, 3, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 15, 0)
-		table.attach(hbox, 2, 3, 1, 3, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 15, 0)
+		table.attach(image, 1, 2, 1, 3, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 15, 0)
+		table.attach(hbox, 2, 3, 1, 3, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 15, 0)
 		if HAS_EXIF and includes_exif:
-			table.attach(hbox2, 3, 4, 1, 3, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 15, 0)
+			table.attach(hbox2, 3, 4, 1, 3, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 15, 0)
 		show_props.vbox.pack_start(table, False, False, 15)
 		show_props.vbox.show_all()
-		close_button = show_props.add_button(gtk.STOCK_CLOSE, gtk.RESPONSE_CLOSE)
+		close_button = show_props.add_button(Gtk.STOCK_CLOSE, Gtk.ResponseType.CLOSE)
 		close_button.grab_focus()
 		show_props.run()
 		show_props.destroy()
 
 	def exif_return_label(self, exif, label_v, format, tag, type="str"):
-		label = gtk.Label(label_v)
+		label = Gtk.Label(label=label_v)
 		label.set_alignment(1, 1)
 		if tag in exif.exif_keys:
 			raw = exif[tag].value
@@ -2417,48 +2433,48 @@ class Base:
 				val = int(raw)
 			else:
 				val = raw
-			value = gtk.Label(format % str(val))
+			value = Gtk.Label(label=format % str(val))
 		else:
-			value = gtk.Label("-")
+			value = Gtk.Label(label="-")
 		value.set_alignment(0,1)
 		return label, value
 
 	def show_prefs(self, action):
 		prev_thumbnail_size = self.usettings['thumbnail_size']
-		self.prefs_dialog = gtk.Dialog(_("%s Preferences") % __appname__, self.window)
-		self.prefs_dialog.set_has_separator(False)
+		self.prefs_dialog = Gtk.Dialog(_("%s Preferences") % __appname__, self.window)
+		#self.prefs_dialog.set_has_separator(False)
 		self.prefs_dialog.set_resizable(False)
 		# "Interface" prefs:
-		table_settings = gtk.Table(14, 3, False)
-		bglabel = gtk.Label()
+		table_settings = Gtk.Table(14, 3, False)
+		bglabel = Gtk.Label()
 		bglabel.set_markup('<b>' + _('Interface') + '</b>')
 		bglabel.set_alignment(0, 1)
-		color_hbox = gtk.HBox(False, 0)
-		colortext = gtk.Label(_('Background color:'))
-		self.colorbutton = gtk.ColorButton(self.bgcolor)
+		color_hbox = Gtk.HBox(False, 0)
+		colortext = Gtk.Label(label=_('Background color:'))
+		self.colorbutton = Gtk.ColorButton(color=self.bgcolor)
 		self.colorbutton.connect('color-set', self.bgcolor_selected)
 		self.colorbutton.set_size_request(150, -1)
 		self.colorbutton.set_tooltip_text(_("Sets the background color for the application."))
 		color_hbox.pack_start(colortext, False, False, 0)
 		color_hbox.pack_start(self.colorbutton, False, False, 0)
-		color_hbox.pack_start(gtk.Label(), True, True, 0)
+		color_hbox.pack_start(Gtk.Label(), True, True, 0)
 
-		simplecolor_hbox = gtk.HBox(False, 0)
-		simplecolortext = gtk.Label(_('Simple background color:'))
-		simplecolorbutton = gtk.CheckButton()
+		simplecolor_hbox = Gtk.HBox(False, 0)
+		simplecolortext = Gtk.Label(label=_('Simple background color:'))
+		simplecolorbutton = Gtk.CheckButton()
 		simplecolorbutton.connect('toggled', self.simple_bgcolor_selected)
 		simplecolor_hbox.pack_start(simplecolortext, False, False, 0)
 		simplecolor_hbox.pack_start(simplecolorbutton, False, False, 0)
-		simplecolor_hbox.pack_start(gtk.Label(), True, True, 0)
+		simplecolor_hbox.pack_start(Gtk.Label(), True, True, 0)
 		if self.usettings['simple_bgcolor']:
 				simplecolorbutton.set_active(True)
 
-		fullscreen = gtk.CheckButton(_("Open Mirage in fullscreen mode"))
+		fullscreen = Gtk.CheckButton(_("Open Mirage in fullscreen mode"))
 		fullscreen.set_active(self.usettings['start_in_fullscreen'])
-		thumbbox = gtk.HBox()
-		thumblabel = gtk.Label(_("Thumbnail size:"))
+		thumbbox = Gtk.HBox()
+		thumblabel = Gtk.Label(label=_("Thumbnail size:"))
 		thumbbox.pack_start(thumblabel, False, False, 0)
-		thumbsize = gtk.combo_box_new_text()
+		thumbsize = Gtk.ComboBoxText()
 		option = 0
 		for size in self.thumbnail_sizes:
 			thumbsize.append_text(size + " x " + size)
@@ -2466,62 +2482,62 @@ class Base:
 				thumbsize.set_active(option)
 			option += 1
 		thumbbox.pack_start(thumbsize, False, False, 5)
-		table_settings.attach(gtk.Label(), 1, 3, 1, 2, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
-		table_settings.attach(bglabel, 1, 3, 2, 3, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 15, 0)
-		table_settings.attach(gtk.Label(), 1, 3, 3, 4, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
-		table_settings.attach(simplecolor_hbox, 1, 2, 4, 5, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_settings.attach(color_hbox, 1, 2, 5, 6, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_settings.attach(gtk.Label(), 1, 3, 6, 7, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
-		table_settings.attach(thumbbox, 1, 3, 7, 8, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_settings.attach(gtk.Label(), 1, 3, 8, 9,  gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_settings.attach(fullscreen, 1, 3, 9, 10,  gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_settings.attach(gtk.Label(), 1, 3, 10, 11, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_settings.attach(gtk.Label(), 1, 3, 11, 12,  gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_settings.attach(gtk.Label(), 1, 3, 12, 13,  gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_settings.attach(gtk.Label(), 1, 3, 13, 14,  gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_settings.attach(gtk.Label(), 1, 3, 14, 15,  gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
+		table_settings.attach(Gtk.Label(), 1, 3, 1, 2, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		table_settings.attach(bglabel, 1, 3, 2, 3, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 15, 0)
+		table_settings.attach(Gtk.Label(), 1, 3, 3, 4, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		table_settings.attach(simplecolor_hbox, 1, 2, 4, 5, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_settings.attach(color_hbox, 1, 2, 5, 6, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_settings.attach(Gtk.Label(), 1, 3, 6, 7, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		table_settings.attach(thumbbox, 1, 3, 7, 8, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_settings.attach(Gtk.Label(), 1, 3, 8, 9,  Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_settings.attach(fullscreen, 1, 3, 9, 10,  Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_settings.attach(Gtk.Label(), 1, 3, 10, 11, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_settings.attach(Gtk.Label(), 1, 3, 11, 12,  Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_settings.attach(Gtk.Label(), 1, 3, 12, 13,  Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_settings.attach(Gtk.Label(), 1, 3, 13, 14,  Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_settings.attach(Gtk.Label(), 1, 3, 14, 15,  Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
 		# "Behavior" tab:
-		table_behavior = gtk.Table(14, 2, False)
-		openlabel = gtk.Label()
+		table_behavior = Gtk.Table(14, 2, False)
+		openlabel = Gtk.Label()
 		openlabel.set_markup('<b>' + _('Open Behavior') + '</b>')
 		openlabel.set_alignment(0, 1)
-		hbox_openmode = gtk.HBox()
-		hbox_openmode.pack_start(gtk.Label(_('Open new image in:')), False, False, 0)
-		combobox = gtk.combo_box_new_text()
+		hbox_openmode = Gtk.HBox()
+		hbox_openmode.pack_start(Gtk.Label(_('Open new image in:')), False, False, 0)
+		combobox = Gtk.ComboBoxText()
 		combobox.append_text(_("Smart Mode"))
 		combobox.append_text(_("Zoom To Fit Mode"))
 		combobox.append_text(_("1:1 Mode"))
 		combobox.append_text(_("Last Active Mode"))
 		combobox.set_active(self.usettings['open_mode'])
 		hbox_openmode.pack_start(combobox, False, False, 5)
-		openallimages = gtk.CheckButton(_("Load all images in current directory"))
+		openallimages = Gtk.CheckButton(_("Load all images in current directory"))
 		openallimages.set_active(self.usettings['open_all_images'])
 		openallimages.set_tooltip_text(_("If enabled, opening an image in Mirage will automatically load all images found in that image's directory."))
-		hiddenimages = gtk.CheckButton(_("Allow loading hidden files"))
+		hiddenimages = Gtk.CheckButton(_("Allow loading hidden files"))
 		hiddenimages.set_active(self.usettings['open_hidden_files'])
 		hiddenimages.set_tooltip_text(_("If checked, Mirage will open hidden files. Otherwise, hidden files will be ignored."))
 		#Numacomp sorting options
-		usenumacomp = gtk.CheckButton(_("Use Numerical aware sort"))
+		usenumacomp = Gtk.CheckButton(_("Use Numerical aware sort"))
 		usenumacomp.set_active(self.usettings['use_numacomp'])
 		usenumacomp.set_tooltip_text(_("If checked, Mirage will sort the images based on a numerical aware sort."))
 		usenumacomp.set_sensitive(HAVE_NUMACOMP)
-		case_numacomp = gtk.CheckButton(_("Casesensitive sort"))
+		case_numacomp = Gtk.CheckButton(_("Casesensitive sort"))
 		case_numacomp.set_active(self.usettings['case_numacomp'])
 		case_numacomp.set_tooltip_text(_("If checked, a case-sensitive sort will be used"))
 		case_numacomp.set_sensitive(usenumacomp.get_active())
 		usenumacomp.connect('toggled', self.toggle_sensitivy_of_other,case_numacomp)
 
-		openpref = gtk.RadioButton()
-		openpref1 = gtk.RadioButton(group=openpref, label=_("Use last chosen directory"))
+		openpref = Gtk.RadioButton()
+		openpref1 = Gtk.RadioButton(group=openpref, label=_("Use last chosen directory"))
 		openpref1.set_tooltip_text(_("The default 'Open' directory will be the last directory used."))
-		openpref2 = gtk.RadioButton(group=openpref, label=_("Use this fixed directory:"))
+		openpref2 = Gtk.RadioButton(group=openpref, label=_("Use this fixed directory:"))
 		openpref2.connect('toggled', self.prefs_use_fixed_dir_clicked)
 		openpref2.set_tooltip_text(_("The default 'Open' directory will be this specified directory."))
-		hbox_defaultdir = gtk.HBox()
-		self.defaultdir = gtk.Button()
-		hbox_defaultdir.pack_start(gtk.Label(), True, True, 0)
+		hbox_defaultdir = Gtk.HBox()
+		self.defaultdir = Gtk.Button()
+		hbox_defaultdir.pack_start(Gtk.Label(), True, True, 0)
 		hbox_defaultdir.pack_start(self.defaultdir, False, False, 0)
-		hbox_defaultdir.pack_start(gtk.Label(), True, True, 0)
+		hbox_defaultdir.pack_start(Gtk.Label(), True, True, 0)
 		if len(self.usettings['fixed_dir']) > 25:
 			self.defaultdir.set_label('...' + self.usettings['fixed_dir'][-22:])
 		else:
@@ -2534,105 +2550,105 @@ class Base:
 		else:
 			openpref2.set_active(True)
 			self.defaultdir.set_sensitive(True)
-		table_behavior.attach(gtk.Label(), 1, 2, 1, 2, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
-		table_behavior.attach(openlabel, 1, 2, 2, 3, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 15, 0)
-		table_behavior.attach(gtk.Label(), 1, 2, 3, 4, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
-		table_behavior.attach(hbox_openmode, 1, 2, 4, 5, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_behavior.attach(gtk.Label(), 1, 2, 5, 6, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
-		table_behavior.attach(openallimages, 1, 2, 6, 7, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_behavior.attach(hiddenimages, 1, 2, 7, 8, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_behavior.attach(usenumacomp, 1, 2, 8, 9, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_behavior.attach(case_numacomp, 1, 2, 9, 10, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 50, 0)
-		table_behavior.attach(gtk.Label(), 1, 2, 10, 11, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
-		table_behavior.attach(openpref1, 1, 2, 11, 12, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_behavior.attach(openpref2, 1, 2, 12, 13, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_behavior.attach(hbox_defaultdir, 1, 2, 13, 14, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 45, 0)
-		table_behavior.attach(gtk.Label(), 1, 2, 14, 15, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 45, 0)
+		table_behavior.attach(Gtk.Label(), 1, 2, 1, 2, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		table_behavior.attach(openlabel, 1, 2, 2, 3, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 15, 0)
+		table_behavior.attach(Gtk.Label(), 1, 2, 3, 4, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		table_behavior.attach(hbox_openmode, 1, 2, 4, 5, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_behavior.attach(Gtk.Label(), 1, 2, 5, 6, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		table_behavior.attach(openallimages, 1, 2, 6, 7, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_behavior.attach(hiddenimages, 1, 2, 7, 8, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_behavior.attach(usenumacomp, 1, 2, 8, 9, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_behavior.attach(case_numacomp, 1, 2, 9, 10, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 50, 0)
+		table_behavior.attach(Gtk.Label(), 1, 2, 10, 11, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		table_behavior.attach(openpref1, 1, 2, 11, 12, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_behavior.attach(openpref2, 1, 2, 12, 13, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_behavior.attach(hbox_defaultdir, 1, 2, 13, 14, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 45, 0)
+		table_behavior.attach(Gtk.Label(), 1, 2, 14, 15, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 45, 0)
 
 		# "Navigation" tab:
-		table_navigation = gtk.Table(14, 2, False)
-		navlabel = gtk.Label()
+		table_navigation = Gtk.Table(14, 2, False)
+		navlabel = Gtk.Label()
 		navlabel.set_markup('<b>' + _('Navigation') + '</b>')
 		navlabel.set_alignment(0, 1)
-		preloadnav = gtk.CheckButton(label=_("Preload images for faster navigation"))
+		preloadnav = Gtk.CheckButton(label=_("Preload images for faster navigation"))
 		preloadnav.set_active(self.usettings['preloading_images'])
 		preloadnav.set_tooltip_text(_("If enabled, the next and previous images in the list will be preloaded during idle time. Note that the speed increase comes at the expense of memory usage, so it is recommended to disable this option on machines with limited ram."))
-		hbox_listwrap = gtk.HBox()
-		hbox_listwrap.pack_start(gtk.Label(_("Wrap around imagelist:")), False, False, 0)
-		combobox2 = gtk.combo_box_new_text()
+		hbox_listwrap = Gtk.HBox()
+		hbox_listwrap.pack_start(Gtk.Label(_("Wrap around imagelist:")), False, False, 0)
+		combobox2 = Gtk.ComboBoxText()
 		combobox2.append_text(_("No"))
 		combobox2.append_text(_("Yes"))
 		combobox2.append_text(_("Prompt User"))
 		combobox2.set_active(self.usettings['listwrap_mode'])
 		hbox_listwrap.pack_start(combobox2, False, False, 5)
-		table_navigation.attach(gtk.Label(), 1, 2, 1, 2, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
-		table_navigation.attach(navlabel, 1, 2, 2, 3, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 15, 0)
-		table_navigation.attach(gtk.Label(), 1, 2, 3, 4, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
-		table_navigation.attach(hbox_listwrap, 1, 2, 4, 5, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_navigation.attach(gtk.Label(), 1, 2, 5, 6, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
-		table_navigation.attach(preloadnav, 1, 2, 6, 7, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_navigation.attach(gtk.Label(), 1, 2, 7, 8, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_navigation.attach(gtk.Label(), 1, 2, 8, 9, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
-		table_navigation.attach(gtk.Label(), 1, 2, 9, 10, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_navigation.attach(gtk.Label(), 1, 2, 10, 11, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_navigation.attach(gtk.Label(), 1, 2, 11, 12, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
-		table_navigation.attach(gtk.Label(), 1, 2, 12, 13, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
-		table_navigation.attach(gtk.Label(), 1, 2, 13, 14, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
+		table_navigation.attach(Gtk.Label(), 1, 2, 1, 2, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		table_navigation.attach(navlabel, 1, 2, 2, 3, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 15, 0)
+		table_navigation.attach(Gtk.Label(), 1, 2, 3, 4, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		table_navigation.attach(hbox_listwrap, 1, 2, 4, 5, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_navigation.attach(Gtk.Label(), 1, 2, 5, 6, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		table_navigation.attach(preloadnav, 1, 2, 6, 7, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_navigation.attach(Gtk.Label(), 1, 2, 7, 8, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_navigation.attach(Gtk.Label(), 1, 2, 8, 9, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		table_navigation.attach(Gtk.Label(), 1, 2, 9, 10, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_navigation.attach(Gtk.Label(), 1, 2, 10, 11, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_navigation.attach(Gtk.Label(), 1, 2, 11, 12, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		table_navigation.attach(Gtk.Label(), 1, 2, 12, 13, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		table_navigation.attach(Gtk.Label(), 1, 2, 13, 14, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
 		# "Slideshow" tab:
-		table_slideshow = gtk.Table(14, 2, False)
-		slideshowlabel = gtk.Label()
+		table_slideshow = Gtk.Table(14, 2, False)
+		slideshowlabel = Gtk.Label()
 		slideshowlabel.set_markup('<b>' + _('Slideshow Mode') + '</b>')
 		slideshowlabel.set_alignment(0, 1)
-		hbox_delay = gtk.HBox()
-		hbox_delay.pack_start(gtk.Label(_("Delay between images in seconds:")), False, False, 0)
-		spin_adj = gtk.Adjustment(self.usettings['slideshow_delay'], 0, 50000, 1, 10, 0)
-		delayspin = gtk.SpinButton(spin_adj, 1.0, 0)
+		hbox_delay = Gtk.HBox()
+		hbox_delay.pack_start(Gtk.Label(_("Delay between images in seconds:")), False, False, 0)
+		spin_adj = Gtk.Adjustment(self.usettings['slideshow_delay'], 0, 50000, 1, 10, 0)
+		delayspin = Gtk.SpinButton.new(spin_adj, 1.0, 0)
 		delayspin.set_numeric(True)
 		hbox_delay.pack_start(delayspin, False, False, 5)
-		randomize = gtk.CheckButton(_("Randomize order of images"))
+		randomize = Gtk.CheckButton(_("Randomize order of images"))
 		randomize.set_active(self.usettings['slideshow_random'])
 		randomize.set_tooltip_text(_("If enabled, a random image will be chosen during slideshow mode (without loading any image twice)."))
-		disable_screensaver = gtk.CheckButton(_("Disable screensaver in slideshow mode"))
+		disable_screensaver = Gtk.CheckButton(_("Disable screensaver in slideshow mode"))
 		disable_screensaver.set_active(self.usettings['disable_screensaver'])
 		disable_screensaver.set_tooltip_text(_("If enabled, xscreensaver will be temporarily disabled during slideshow mode."))
-		ss_in_fs = gtk.CheckButton(_("Always start in fullscreen mode"))
+		ss_in_fs = Gtk.CheckButton(_("Always start in fullscreen mode"))
 		ss_in_fs.set_tooltip_text(_("If enabled, starting a slideshow will put the application in fullscreen mode."))
 		ss_in_fs.set_active(self.usettings['slideshow_in_fullscreen'])
-		table_slideshow.attach(gtk.Label(), 1, 2, 1, 2, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
-		table_slideshow.attach(slideshowlabel, 1, 2, 2, 3, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 15, 0)
-		table_slideshow.attach(gtk.Label(), 1, 2, 3, 4, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
-		table_slideshow.attach(hbox_delay, 1, 2, 4, 5, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_slideshow.attach(gtk.Label(), 1, 2, 5, 6, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
-		table_slideshow.attach(disable_screensaver, 1, 2, 6, 7, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_slideshow.attach(ss_in_fs, 1, 2, 7, 8, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_slideshow.attach(randomize, 1, 2, 8, 9, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_slideshow.attach(gtk.Label(), 1, 2, 9, 10, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
-		table_slideshow.attach(gtk.Label(), 1, 2, 10, 11, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
-		table_slideshow.attach(gtk.Label(), 1, 2, 11, 12, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
-		table_slideshow.attach(gtk.Label(), 1, 2, 12, 13, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
-		table_slideshow.attach(gtk.Label(), 1, 2, 13, 14, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 0, 0)
+		table_slideshow.attach(Gtk.Label(), 1, 2, 1, 2, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		table_slideshow.attach(slideshowlabel, 1, 2, 2, 3, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 15, 0)
+		table_slideshow.attach(Gtk.Label(), 1, 2, 3, 4, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		table_slideshow.attach(hbox_delay, 1, 2, 4, 5, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_slideshow.attach(Gtk.Label(), 1, 2, 5, 6, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		table_slideshow.attach(disable_screensaver, 1, 2, 6, 7, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_slideshow.attach(ss_in_fs, 1, 2, 7, 8, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_slideshow.attach(randomize, 1, 2, 8, 9, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_slideshow.attach(Gtk.Label(), 1, 2, 9, 10, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		table_slideshow.attach(Gtk.Label(), 1, 2, 10, 11, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		table_slideshow.attach(Gtk.Label(), 1, 2, 11, 12, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		table_slideshow.attach(Gtk.Label(), 1, 2, 12, 13, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
+		table_slideshow.attach(Gtk.Label(), 1, 2, 13, 14, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 0, 0)
 		# "Image" tab:
-		table_image = gtk.Table(14, 2, False)
-		imagelabel = gtk.Label()
+		table_image = Gtk.Table(14, 2, False)
+		imagelabel = Gtk.Label()
 		imagelabel.set_markup('<b>' + _('Image Editing') + '</b>')
 		imagelabel.set_alignment(0, 1)
-		deletebutton = gtk.CheckButton(_("Confirm image delete"))
+		deletebutton = Gtk.CheckButton(_("Confirm image delete"))
 		deletebutton.set_active(self.usettings['confirm_delete'])
 
-		zoom_hbox = gtk.HBox()
-		zoom_hbox.pack_start(gtk.Label(_('Scaling quality:')), False, False, 0)
-		zoomcombo = gtk.combo_box_new_text()
+		zoom_hbox = Gtk.HBox()
+		zoom_hbox.pack_start(Gtk.Label(_('Scaling quality:')), False, False, 0)
+		zoomcombo = Gtk.ComboBoxText()
 		zoomcombo.append_text(_("Nearest (Fastest)"))
 		zoomcombo.append_text(_("Tiles"))
 		zoomcombo.append_text(_("Bilinear"))
 		zoomcombo.append_text(_("Hyper (Best)"))
 		zoomcombo.set_active(self.usettings['zoomvalue'])
 		zoom_hbox.pack_start(zoomcombo, False, False, 0)
-		zoom_hbox.pack_start(gtk.Label(), True, True, 0)
+		zoom_hbox.pack_start(Gtk.Label(), True, True, 0)
 
-		hbox_save = gtk.HBox()
-		savelabel = gtk.Label(_("Modified images:"))
-		savecombo = gtk.combo_box_new_text()
+		hbox_save = Gtk.HBox()
+		savelabel = Gtk.Label(label=_("Modified images:"))
+		savecombo = Gtk.ComboBoxText()
 		savecombo.append_text(_("Ignore Changes"))
 		savecombo.append_text(_("Auto-Save"))
 		savecombo.append_text(_("Prompt For Action"))
@@ -2640,54 +2656,54 @@ class Base:
 		hbox_save.pack_start(savelabel, False, False, 0)
 		hbox_save.pack_start(savecombo, False, False, 5)
 
-		hbox_quality = gtk.HBox()
-		qualitylabel = gtk.Label(_("Quality to save in:"))
-		qspin_adj = gtk.Adjustment(self.usettings['quality_save'], 0, 100, 1, 100, 0)
-		qualityspin = gtk.SpinButton(qspin_adj, 1.0, 0)
+		hbox_quality = Gtk.HBox()
+		qualitylabel = Gtk.Label(label=_("Quality to save in:"))
+		qspin_adj = Gtk.Adjustment(self.usettings['quality_save'], 0, 100, 1, 100, 0)
+		qualityspin = Gtk.SpinButton.new(qspin_adj, 1.0, 0)
 		qualityspin.set_numeric(True)
 		hbox_quality.pack_start(qualitylabel, False, False, 0)
 		hbox_quality.pack_start(qualityspin, False, False, 5)
-		table_image.attach(gtk.Label(), 1, 3, 1, 2,  gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_image.attach(imagelabel, 1, 3, 2, 3,  gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 15, 0)
-		table_image.attach(gtk.Label(), 1, 3, 3, 4,  gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_image.attach(zoom_hbox, 1, 3, 4, 5,  gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_image.attach(gtk.Label(), 1, 3, 5, 6,  gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_image.attach(hbox_save, 1, 3, 6, 7, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_image.attach(gtk.Label(), 1, 3, 7, 8, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_image.attach(hbox_quality, 1, 3, 8, 9, gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_image.attach(gtk.Label(), 1, 3, 9, 10,  gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_image.attach(deletebutton, 1, 3, 10, 11,  gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_image.attach(gtk.Label(), 1, 3, 11, 12,  gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_image.attach(gtk.Label(), 1, 3, 12, 13,  gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_image.attach(gtk.Label(), 1, 3, 13, 14,  gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
-		table_image.attach(gtk.Label(), 1, 3, 14, 15,  gtk.FILL|gtk.EXPAND, gtk.FILL|gtk.EXPAND, 30, 0)
+		table_image.attach(Gtk.Label(), 1, 3, 1, 2,  Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_image.attach(imagelabel, 1, 3, 2, 3,  Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 15, 0)
+		table_image.attach(Gtk.Label(), 1, 3, 3, 4,  Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_image.attach(zoom_hbox, 1, 3, 4, 5,  Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_image.attach(Gtk.Label(), 1, 3, 5, 6,  Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_image.attach(hbox_save, 1, 3, 6, 7, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_image.attach(Gtk.Label(), 1, 3, 7, 8, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_image.attach(hbox_quality, 1, 3, 8, 9, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_image.attach(Gtk.Label(), 1, 3, 9, 10,  Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_image.attach(deletebutton, 1, 3, 10, 11,  Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_image.attach(Gtk.Label(), 1, 3, 11, 12,  Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_image.attach(Gtk.Label(), 1, 3, 12, 13,  Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_image.attach(Gtk.Label(), 1, 3, 13, 14,  Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
+		table_image.attach(Gtk.Label(), 1, 3, 14, 15,  Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, Gtk.AttachOptions.FILL|Gtk.AttachOptions.EXPAND, 30, 0)
 		# Add tabs:
-		notebook = gtk.Notebook()
-		notebook.append_page(table_behavior, gtk.Label(_("Behavior")))
-		notebook.append_page(table_navigation, gtk.Label(_("Navigation")))
-		notebook.append_page(table_settings, gtk.Label(_("Interface")))
-		notebook.append_page(table_slideshow, gtk.Label(_("Slideshow")))
-		notebook.append_page(table_image, gtk.Label(_("Image")))
+		notebook = Gtk.Notebook()
+		notebook.append_page(table_behavior, Gtk.Label(label=_("Behavior")))
+		notebook.append_page(table_navigation, Gtk.Label(label=_("Navigation")))
+		notebook.append_page(table_settings, Gtk.Label(label=_("Interface")))
+		notebook.append_page(table_slideshow, Gtk.Label(label=_("Slideshow")))
+		notebook.append_page(table_image, Gtk.Label(label=_("Image")))
 		notebook.set_current_page(0)
-		hbox = gtk.HBox()
+		hbox = Gtk.HBox()
 		self.prefs_dialog.vbox.pack_start(hbox, False, False, 7)
 		hbox.pack_start(notebook, False, False, 7)
 		notebook.connect('switch-page', self.prefs_tab_switched)
 		# Show prefs:
 		self.prefs_dialog.vbox.show_all()
-		self.close_button = self.prefs_dialog.add_button(gtk.STOCK_CLOSE, gtk.RESPONSE_CLOSE)
+		self.close_button = self.prefs_dialog.add_button(Gtk.STOCK_CLOSE, Gtk.ResponseType.CLOSE)
 		self.close_button.grab_focus()
 		response = self.prefs_dialog.run()
-		if response == gtk.RESPONSE_CLOSE or response == gtk.RESPONSE_DELETE_EVENT:
+		if response == Gtk.ResponseType.CLOSE or response == Gtk.ResponseType.DELETE_EVENT:
 			self.usettings['zoomvalue'] = zoomcombo.get_active()
 			if int(round(self.usettings['zoomvalue'], 0)) == 0:
-				self.zoom_quality = gtk.gdk.INTERP_NEAREST
+				self.zoom_quality = GdkPixbuf.InterpType.NEAREST
 			elif int(round(self.usettings['zoomvalue'], 0)) == 1:
-				self.zoom_quality = gtk.gdk.INTERP_TILES
+				self.zoom_quality = GdkPixbuf.InterpType.TILES
 			elif int(round(self.usettings['zoomvalue'], 0)) == 2:
-				self.zoom_quality = gtk.gdk.INTERP_BILINEAR
+				self.zoom_quality = GdkPixbuf.InterpType.BILINEAR
 			elif int(round(self.usettings['zoomvalue'], 0)) == 3:
-				self.zoom_quality = gtk.gdk.INTERP_HYPER
+				self.zoom_quality = GdkPixbuf.InterpType.HYPER
 			self.usettings['open_all_images'] = openallimages.get_active()
 			self.usettings['open_hidden_files'] = hiddenimages.get_active()
 			self.usettings['use_numacomp'] = usenumacomp.get_active()
@@ -2713,16 +2729,16 @@ class Base:
 			self.usettings['quality_save'] = qualityspin.get_value()
 			self.usettings['thumbnail_size'] = int(self.thumbnail_sizes[thumbsize.get_active()])
 			if self.usettings['thumbnail_size'] != prev_thumbnail_size:
-				gobject.idle_add(self.thumbpane_set_size)
-				gobject.idle_add(self.thumbpane_update_images, True, self.curr_img_in_list)
+				GObject.idle_add(self.thumbpane_set_size)
+				GObject.idle_add(self.thumbpane_update_images, True, self.curr_img_in_list)
 			self.prefs_dialog.destroy()
 			self.set_go_navigation_sensitivities(False)
 			if (self.usettings['preloading_images'] and not preloading_images_prev) or (open_mode_prev != self.usettings['open_mode']):
 				# The user just turned on preloading, so do it:
 				self.nextimg.index = -1
 				self.previmg.index = -1
-				self.preload_when_idle = gobject.idle_add(self.preload_next_image, False)
-				self.preload_when_idle2 = gobject.idle_add(self.preload_prev_image, False)
+				self.preload_when_idle = GObject.idle_add(self.preload_next_image, False)
+				self.preload_when_idle2 = GObject.idle_add(self.preload_prev_image, False)
 			elif not self.usettings['preloading_images']:
 				self.nextimg.index = -1
 				self.previmg.index = -1
@@ -2745,36 +2761,36 @@ class Base:
 			temp_slideshow_mode = self.slideshow_mode
 			if self.slideshow_mode:
 				self.toggle_slideshow(None)
-			rename_dialog = gtk.Dialog(_('Rename Image'), self.window, gtk.DIALOG_MODAL)
-			rename_txt = gtk.Entry()
+			rename_dialog = Gtk.Dialog(_('Rename Image'), self.window, Gtk.DialogFlags.MODAL)
+			rename_txt = Gtk.Entry()
 			filename = os.path.basename(self.currimg.name)
 			rename_txt.set_text(filename)
 			rename_txt.set_activates_default(True)
-			cancelbutton = rename_dialog.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
-			renamebutton = rename_dialog.add_button(_("_Rename"), gtk.RESPONSE_ACCEPT)
-			renameimage = gtk.Image()
-			renameimage.set_from_stock(gtk.STOCK_OK, gtk.ICON_SIZE_BUTTON)
+			cancelbutton = rename_dialog.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
+			renamebutton = rename_dialog.add_button(_("_Rename"), Gtk.ResponseType.ACCEPT)
+			renameimage = Gtk.Image()
+			renameimage.set_from_stock(Gtk.STOCK_OK, Gtk.IconSize.BUTTON)
 			renamebutton.set_image(renameimage)
 			if self.currimg.animation:
 				pixbuf, image_width, image_height = self.get_pixbuf_of_size(self.currimg.pixbuf_original.get_static_image(), 60, self.zoom_quality)
 			else:
 				pixbuf, image_width, image_height = self.get_pixbuf_of_size(self.currimg.pixbuf_original, 60, self.zoom_quality)
-			image = gtk.Image()
+			image = Gtk.Image()
 			image.set_from_pixbuf(pixbuf)
-			instructions = gtk.Label(_("Enter the new name:"))
+			instructions = Gtk.Label(label=_("Enter the new name:"))
 			instructions.set_alignment(0, 1)
-			hbox = gtk.HBox()
+			hbox = Gtk.HBox()
 			hbox.pack_start(image, False, False, 10)
-			vbox_stuff = gtk.VBox()
-			vbox_stuff.pack_start(gtk.Label(), False, False, 0)
+			vbox_stuff = Gtk.VBox()
+			vbox_stuff.pack_start(Gtk.Label(), False, False, 0)
 			vbox_stuff.pack_start(instructions, False, False, 0)
-			vbox_stuff.pack_start(gtk.Label(), False, False, 0)
+			vbox_stuff.pack_start(Gtk.Label(), False, False, 0)
 			vbox_stuff.pack_start(rename_txt, True, True, 0)
-			vbox_stuff.pack_start(gtk.Label(), False, False, 0)
+			vbox_stuff.pack_start(Gtk.Label(), False, False, 0)
 			hbox.pack_start(vbox_stuff, True, True, 10)
 			rename_dialog.vbox.pack_start(hbox, False, False, 0)
-			rename_dialog.set_has_separator(True)
-			rename_dialog.set_default_response(gtk.RESPONSE_ACCEPT)
+			#rename_dialog.set_has_separator(True)
+			rename_dialog.set_default_response(Gtk.ResponseType.ACCEPT)
 			rename_dialog.set_size_request(300, -1)
 			rename_dialog.vbox.show_all()
 			rename_dialog.connect('show', self.select_rename_text, rename_txt)
@@ -2790,14 +2806,14 @@ class Base:
 		rename_entry.select_region(0, len(filename) - len(fileext))
 		
 	def on_rename_dialog_response(self, dialog, response, rename_entry):
-		if response == gtk.RESPONSE_ACCEPT:
+		if response == Gtk.ResponseType.ACCEPT:
 			try:
 				new_filename = os.path.join(os.path.dirname(self.currimg.name), rename_entry.get_text().decode('utf-8'))
 				if os.path.exists(new_filename):
-					exists_dialog = gtk.MessageDialog(self.window, gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING, gtk.BUTTONS_OK_CANCEL, _('Overwrite existing file %s?') % new_filename)
+					exists_dialog = Gtk.MessageDialog(self.window, Gtk.DialogFlags.MODAL, Gtk.MessageType.WARNING, Gtk.ButtonsType.OK_CANCEL, _('Overwrite existing file %s?') % new_filename)
 					exists_dialog.set_title(_("File exists"))
 					resp = exists_dialog.run()
-					if resp != gtk.RESPONSE_OK:
+					if resp != Gtk.ResponseType.OK:
 						exists_dialog.destroy()
 						dialog.emit_stop_by_name('response')
 						return
@@ -2815,7 +2831,7 @@ class Base:
 				self.update_title()
 				dialog.destroy()
 			except:
-				error_dialog = gtk.MessageDialog(self.window, gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING, gtk.BUTTONS_OK, _('Unable to rename %s') % self.currimg.name)
+				error_dialog = Gtk.MessageDialog(self.window, Gtk.DialogFlags.MODAL, Gtk.MessageType.WARNING, Gtk.ButtonsType.OK, _('Unable to rename %s') % self.currimg.name)
 				error_dialog.set_title(_("Unable to rename"))
 				error_dialog.run()
 				error_dialog.destroy()
@@ -2826,28 +2842,28 @@ class Base:
 			temp_slideshow_mode = self.slideshow_mode
 			if self.slideshow_mode:
 				self.toggle_slideshow(None)
-			delete_dialog = gtk.Dialog(_('Delete Image'), self.window, gtk.DIALOG_MODAL)
+			delete_dialog = Gtk.Dialog(_('Delete Image'), self.window, Gtk.DialogFlags.MODAL)
 			if self.usettings['confirm_delete']:
-				permlabel = gtk.Label(_('Are you sure you wish to permanently delete %s?') % os.path.split(self.currimg.name)[1])
+				permlabel = Gtk.Label(label=_('Are you sure you wish to permanently delete %s?') % os.path.split(self.currimg.name)[1])
 				permlabel.set_line_wrap(True)
 				permlabel.set_alignment(0, 0.1)
-				warningicon = gtk.Image()
-				warningicon.set_from_stock(gtk.STOCK_DIALOG_WARNING, gtk.ICON_SIZE_DIALOG)
-				hbox = gtk.HBox()
+				warningicon = Gtk.Image()
+				warningicon.set_from_stock(Gtk.STOCK_DIALOG_WARNING, Gtk.IconSize.DIALOG)
+				hbox = Gtk.HBox()
 				hbox.pack_start(warningicon, False, False, 10)
 				hbox.pack_start(permlabel, False, False, 10)
-				delete_dialog.vbox.pack_start(gtk.Label(), False, False, 0)
+				delete_dialog.vbox.pack_start(Gtk.Label(), False, False, 0)
 				delete_dialog.vbox.pack_start(hbox, False, False, 0)
-				cancelbutton = delete_dialog.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
-				deletebutton = delete_dialog.add_button(gtk.STOCK_DELETE, gtk.RESPONSE_YES)
-				delete_dialog.set_has_separator(False)
+				cancelbutton = delete_dialog.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
+				deletebutton = delete_dialog.add_button(Gtk.STOCK_DELETE, Gtk.ResponseType.YES)
+				#delete_dialog.set_has_separator(False)
 				deletebutton.set_property('has-focus', True)
-				delete_dialog.set_default_response(gtk.RESPONSE_YES)
+				delete_dialog.set_default_response(Gtk.ResponseType.YES)
 				delete_dialog.vbox.show_all()
 				response = delete_dialog.run()
 			else:
-				response = gtk.RESPONSE_YES
-			if response  == gtk.RESPONSE_YES:
+				response = Gtk.ResponseType.YES
+			if response  == Gtk.ResponseType.YES:
 				try:
 					os.remove(self.currimg.name)
 					self.image_modified = False
@@ -2884,10 +2900,10 @@ class Base:
 							self.curr_img_in_list = 0
 						elif self.curr_img_in_list == len(self.image_list):
 							self.curr_img_in_list -= 1
-						self.change_cursor(gtk.gdk.Cursor(gtk.gdk.WATCH))
+						self.change_cursor(Gdk.Cursor.new(Gdk.CursorType.WATCH))
 						self.previmg.index = -1
 						self.nextimg.index = -1
-						self.load_when_idle = gobject.idle_add(self.load_new_image, False, False, True, True, True, True)
+						self.load_when_idle = GObject.idle_add(self.load_new_image, False, False, True, True, True, True)
 						self.set_go_navigation_sensitivities(False)
 					else:
 						self.imageview.clear()
@@ -2900,7 +2916,7 @@ class Base:
 					# Select new item:
 					self.thumbpane_select(self.curr_img_in_list)
 				except:
-					error_dialog = gtk.MessageDialog(self.window, gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING, gtk.BUTTONS_OK, _('Unable to delete %s') % self.currimg.name)
+					error_dialog = Gtk.MessageDialog(self.window, Gtk.DialogFlags.MODAL, Gtk.MessageType.WARNING, Gtk.ButtonsType.OK, _('Unable to delete %s') % self.currimg.name)
 					error_dialog.set_title(_("Unable to delete"))
 					error_dialog.run()
 					error_dialog.destroy()
@@ -2909,12 +2925,12 @@ class Base:
 				self.toggle_slideshow(None)
 
 	def defaultdir_clicked(self, button):
-		getdir = gtk.FileChooserDialog(title=_("Choose directory"),action=gtk.FILE_CHOOSER_ACTION_OPEN,buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
-		getdir.set_action(gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER)
+		getdir = Gtk.FileChooserDialog(title=_("Choose directory"),action=Gtk.FileChooserAction.OPEN,buttons=(Gtk.STOCK_CANCEL,Gtk.ResponseType.CANCEL,Gtk.STOCK_OPEN,Gtk.ResponseType.OK))
+		getdir.set_action(Gtk.FileChooserAction.SELECT_FOLDER)
 		getdir.set_filename(self.usettings['fixed_dir'])
-		getdir.set_default_response(gtk.RESPONSE_OK)
+		getdir.set_default_response(Gtk.ResponseType.OK)
 		response = getdir.run()
-		if response == gtk.RESPONSE_OK:
+		if response == Gtk.ResponseType.OK:
 			self.usettings['fixed_dir'] = getdir.get_filenames()[0]
 			if len(self.usettings['fixed_dir']) > 25:
 				button.set_label('...' + self.usettings['fixed_dir'][-22:])
@@ -2925,7 +2941,7 @@ class Base:
 			getdir.destroy()
 
 	def prefs_tab_switched(self, notebook, page, page_num):
-		do_when_idle = gobject.idle_add(self.grab_close_button)
+		do_when_idle = GObject.idle_add(self.grab_close_button)
 
 	def grab_close_button(self):
 		self.close_button.grab_focus()
@@ -2937,21 +2953,21 @@ class Base:
 		self.bgcolor = z
 		self.usettings['bgcolor'] = {'r': z.red, 'g': z.green, 'b': z.blue}
 		if not self.usettings['simple_bgcolor']:
-			self.layout.modify_bg(gtk.STATE_NORMAL, self.bgcolor)
-			self.slideshow_window.modify_bg(gtk.STATE_NORMAL, self.bgcolor)
-			self.slideshow_window2.modify_bg(gtk.STATE_NORMAL, self.bgcolor)
+			self.layout.modify_bg(Gtk.StateType.NORMAL, self.bgcolor)
+			self.slideshow_window.modify_bg(Gtk.StateType.NORMAL, self.bgcolor)
+			self.slideshow_window2.modify_bg(Gtk.StateType.NORMAL, self.bgcolor)
 
 	def simple_bgcolor_selected(self, widget):
 		if widget.get_active():
 			self.usettings['simple_bgcolor'] = True
-			self.layout.modify_bg(gtk.STATE_NORMAL, None)
+			self.layout.modify_bg(Gtk.StateType.NORMAL, None)
 		else:
 			self.usettings['simple_bgcolor'] = False
 			self.bgcolor_selected(self.colorbutton)
 
 	def show_about(self, action):
 		# Help > About
-		self.about_dialog = gtk.AboutDialog()
+		self.about_dialog = Gtk.AboutDialog()
 		try:
 			self.about_dialog.set_transient_for(self.window)
 			self.about_dialog.set_modal(True)
@@ -2964,11 +2980,11 @@ class Base:
 		self.about_dialog.set_authors(['Scott Horowitz <stonecrest@gmail.com> (retired, original developer)', 'Fredric Johansson <fredric.miscmail@gmail.com>'])
 		self.about_dialog.set_artists(['William Rea <sillywilly@gmail.com>'])
 		self.about_dialog.set_translator_credits('cs - Petr Pisar <petr.pisar@atlas.cz>\nde - Bjoern Martensen <bjoern.martensen@gmail.com>\nes - Isidro Arribas <cdhotfire@gmail.com>\nfr - Mike Massonnet <mmassonnet@gmail.com>\nhu - Sandor Lisovszki <lisovszki@dunakanyar.net>\nnl - Pascal De Vuyst <pascal.devuyst@gmail.com>\npl - Tomasz Dominikowski <dominikowski@gmail.com>\npt_BR - Danilo Martins <mawkee@gmail.com>\nru - mavka <mavka@justos.org>\nit - Daniele Maggio <dado84@freemail.it>\nzh_CN - Jayden Suen <no.sun@163.com>')
-		gtk.about_dialog_set_url_hook(self.show_website, "http://mirageiv.berlios.de")
+		self.about_dialog.set_website("http://mirageiv.berlios.de")
 		self.about_dialog.set_website_label("http://mirageiv.berlios.de")
 		icon_path = self.find_path('mirage.png')
 		try:
-			icon_pixbuf = gtk.gdk.pixbuf_new_from_file(icon_path)
+			icon_pixbuf = GdkPixbuf.Pixbuf.new_from_file(icon_path)
 			self.about_dialog.set_logo(icon_pixbuf)
 		except:
 			pass
@@ -3004,7 +3020,7 @@ class Base:
 								try:
 									pid = subprocess.Popen(["opera", docslink]).pid
 								except:
-									error_dialog = gtk.MessageDialog(self.window, gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE, _('Unable to launch a suitable browser.'))
+									error_dialog = Gtk.MessageDialog(self.window, Gtk.DialogFlags.MODAL, Gtk.MessageType.WARNING, Gtk.ButtonsType.CLOSE, _('Unable to launch a suitable browser.'))
 									error_dialog.run()
 									error_dialog.destroy()
 
@@ -3013,41 +3029,45 @@ class Base:
 		return True
 
 	def mousewheel_scrolled(self, widget, event):
-		if event.type == gtk.gdk.SCROLL:
+		if event.type == Gdk.SCROLL:
 			# Zooming of the image by Ctrl-mousewheel
-			if event.state & gtk.gdk.CONTROL_MASK:
-				if event.direction == gtk.gdk.SCROLL_UP:
+			if event.get_state() & Gdk.ModifierType.CONTROL_MASK:
+				if event.direction == Gdk.ScrollDirection.UP:
 					self.zoom_in(None)
-				elif event.direction == gtk.gdk.SCROLL_DOWN:
+				elif event.direction == Gdk.ScrollDirection.DOWN:
 					self.zoom_out(None)
 				return True
 			# Navigation of images with mousewheel:
 			else:
-				if event.direction == gtk.gdk.SCROLL_UP:
+				if event.direction == Gdk.ScrollDirection.UP:
 					self.goto_prev_image(None)
-				elif event.direction == gtk.gdk.SCROLL_DOWN:
+				elif event.direction == Gdk.ScrollDirection.DOWN:
 					self.goto_next_image(None)
 				return True
 
 	def mouse_moved(self, widget, event):
 		# This handles the panning of the image
 		if event.is_hint:
-			x, y, state = event.window.get_pointer()
+			#print (dir(event.window.get_pointer()))
+			#x, y, state = event.window.get_pointer()
+			x = event.x
+			y = event.y
+			state = event.get_state()
 		else:
-			state = event.state
+			state = event.get_state()
 		x, y = event.x_root, event.y_root
-		if (state & gtk.gdk.BUTTON2_MASK) or (state & gtk.gdk.BUTTON1_MASK):
+		if (state & Gdk.ModifierType.BUTTON2_MASK) or (state & Gdk.ModifierType.BUTTON1_MASK):
 			# Prevent self.expose_event() from potentially further changing the
 			# adjustments upon the adjustment value changes
 			self.updating_adjustments = True
 			xadjust = self.layout.get_hadjustment()
-			newx = xadjust.value + (self.prevmousex - x)
-			if newx >= xadjust.lower and newx <= xadjust.upper - xadjust.page_size:
+			newx = xadjust.get_value() + (self.prevmousex - x)
+			if newx >= xadjust.get_lower() and newx <= xadjust.get_upper() - xadjust.get_page_size():
 				xadjust.set_value(newx)
 				self.layout.set_hadjustment(xadjust)
 			yadjust = self.layout.get_vadjustment()
-			newy = yadjust.value + (self.prevmousey - y)
-			if newy >= yadjust.lower and newy <= yadjust.upper - yadjust.page_size:
+			newy = yadjust.get_value() + (self.prevmousey - y)
+			if newy >= yadjust.get_lower() and newy <= yadjust.get_upper() - yadjust.get_page_size():
 				yadjust.set_value(newy)
 				self.layout.set_vadjustment(yadjust)
 			self.updating_adjustments = False
@@ -3057,11 +3077,11 @@ class Base:
 			# Show cursor on movement, then hide after 2 seconds of no movement
 			self.change_cursor(None)
 			if not self.slideshow_controls_visible:
-				gobject.source_remove(self.timer_id)
+				GObject.source_remove(self.timer_id)
 				if not self.closing_app:
-					while gtk.events_pending():
-						gtk.main_iteration()
-				self.timer_id = gobject.timeout_add(2000, self.hide_cursor)
+					while Gtk.events_pending():
+						Gtk.main_iteration()
+				self.timer_id = GObject.timeout_add(2000, self.hide_cursor)
 			(xpos, ypos) = self.window.get_position()
 			if y - ypos > 0.9*self.available_image_height():
 				self.slideshow_controls_show()
@@ -3072,7 +3092,7 @@ class Base:
 	def button_pressed(self, widget, event):
 		if self.image_loaded:
 			# Double-click switch fullscreen:
-			if event.button == 1 and event.type == gtk.gdk._2BUTTON_PRESS:
+			if event.button == 1 and event.type == Gdk.EventType._2BUTTON_PRESS:
 				self.enter_fullscreen(None)
 			elif event.button == 2:
 				if self.last_image_action_was_fit:
@@ -3081,7 +3101,7 @@ class Base:
 					self.zoom_to_fit_window(None, False, False)
 			# Changes the cursor to the 'resize' cursor, like GIMP, on a middle click:
 			elif event.button == 1 and (self.hscroll.get_property('visible')==True or self.vscroll.get_property('visible')==True):
-				self.change_cursor(gtk.gdk.Cursor(gtk.gdk.FLEUR))
+				self.change_cursor(Gdk.Cursor.new(Gdk.FLEUR))
 				self.prevmousex = event.x_root
 				self.prevmousey = event.y_root
 			# Right-click popup:
@@ -3207,7 +3227,7 @@ class Base:
 			if self.usettings['preloading_images']:
 				self.previmg.zoomratio = 1
 		else:
-			if self.currimg.isloaded and (self.slideshow_mode or self.currimg.animation or (not self.currimg.animation and self.UIManager.get_widget('/MainMenu/ViewMenu/1:1').get_property('sensitive'))):
+			if self.currimg.isloaded and (self.slideshow_mode or self.currimg.animation or (not self.currimg.animation)):
 				self.image_zoomed = True
 				self.usettings['last_mode'] = self.open_mode_1to1
 				self.last_image_action_was_fit = False
@@ -3259,7 +3279,7 @@ class Base:
 
 	def copy_to_clipboard(self, action):
 		"""Copies the currently viewed image to the clipboard"""
-		clipboard = gtk.Clipboard()
+		clipboard = Gtk.Clipboard()
 		clipboard.set_image(self.currimg.pixbuf)
 
 	def get_pixbuf_of_size(self, pixbuf, size, zoom_quality):
@@ -3277,7 +3297,7 @@ class Base:
 				image_width = int(size/float(image_height)*image_width)
 				image_height = size
 		if pixbuf.get_has_alpha():
-			colormap = self.imageview.get_colormap()
+			colormap = self.imageview.get_visual()
 			light_grey = colormap.alloc_color('#666666', True, True)
 			dark_grey = colormap.alloc_color('#999999', True, True)
 			crop_pixbuf = pixbuf.composite_color_simple(image_width, image_height, zoom_quality, 255, 8, light_grey.pixel, dark_grey.pixel)
@@ -3291,7 +3311,7 @@ class Base:
 		try:
 			width = pix.get_width()
 			height = pix.get_height()
-			newpix = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, True, 8, width+2, height+2)
+			newpix = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, width+2, height+2)
 			newpix.fill(0x858585ff)
 			pix.copy_area(0, 0, width, height, newpix, 1, 1)
 			return newpix
@@ -3299,78 +3319,78 @@ class Base:
 			return pix
 
 	def crop_image(self, action):
-		dialog = gtk.Dialog(_("Crop Image"), self.window, gtk.DIALOG_MODAL, (gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT))
-		cropbutton = dialog.add_button(_("C_rop"), gtk.RESPONSE_ACCEPT)
-		cropimage = gtk.Image()
-		cropimage.set_from_stock(gtk.STOCK_OK, gtk.ICON_SIZE_BUTTON)
+		dialog = Gtk.Dialog(_("Crop Image"), self.window, Gtk.DialogFlags.MODAL, (Gtk.STOCK_CANCEL, Gtk.ResponseType.REJECT))
+		cropbutton = dialog.add_button(_("C_rop"), Gtk.ResponseType.ACCEPT)
+		cropimage = Gtk.Image()
+		cropimage.set_from_stock(Gtk.STOCK_OK, Gtk.IconSize.BUTTON)
 		cropbutton.set_image(cropimage)
-		image = gtk.DrawingArea()
+		image = Gtk.DrawingArea()
 		crop_pixbuf, image_width, image_height = self.get_pixbuf_of_size(self.currimg.pixbuf_original, 400, self.zoom_quality)
 		image.set_size_request(image_width, image_height)
-		hbox = gtk.HBox()
-		hbox.pack_start(gtk.Label(), expand=True)
-		hbox.pack_start(image, expand=False)
-		hbox.pack_start(gtk.Label(), expand=True)
-		vbox_left = gtk.VBox()
-		x_adj = gtk.Adjustment(0, 0, self.currimg.pixbuf_original.get_width(), 1, 10, 0)
-		x = gtk.SpinButton(x_adj, 0, 0)
+		hbox = Gtk.HBox()
+		hbox.pack_start(Gtk.Label(), True, True, 0)
+		hbox.pack_start(image, False, True, 0)
+		hbox.pack_start(Gtk.Label(), True, True, 0)
+		vbox_left = Gtk.VBox()
+		x_adj = Gtk.Adjustment(0, 0, self.currimg.pixbuf_original.get_width(), 1, 10, 0)
+		x = Gtk.SpinButton.new(x_adj, 0, 0)
 		x.set_numeric(True)
-		x.set_update_policy(gtk.UPDATE_IF_VALID)
+		x.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
 		x.set_wrap(False)
-		x_label = gtk.Label("X:")
+		x_label = Gtk.Label(label="X:")
 		x_label.set_alignment(0, 0.7)
-		y_adj = gtk.Adjustment(0, 0, self.currimg.pixbuf_original.get_height(), 1, 10, 0)
-		y = gtk.SpinButton(y_adj, 0, 0)
+		y_adj = Gtk.Adjustment(0, 0, self.currimg.pixbuf_original.get_height(), 1, 10, 0)
+		y = Gtk.SpinButton.new(y_adj, 0, 0)
 		y.set_numeric(True)
-		y.set_update_policy(gtk.UPDATE_IF_VALID)
+		y.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
 		y.set_wrap(False)
-		y_label = gtk.Label("Y:")
-		x_label.set_size_request(y_label.size_request()[0], -1)
-		hbox_x = gtk.HBox()
-		hbox_y = gtk.HBox()
+		y_label = Gtk.Label(label="Y:")
+		x_label.set_size_request(y_label.size_request().width, -1)
+		hbox_x = Gtk.HBox()
+		hbox_y = Gtk.HBox()
 		hbox_x.pack_start(x_label, False, False, 10)
 		hbox_x.pack_start(x, False, False, 0)
-		hbox_x.pack_start(gtk.Label(), False, False, 3)
+		hbox_x.pack_start(Gtk.Label(), False, False, 3)
 		hbox_y.pack_start(y_label, False, False, 10)
 		hbox_y.pack_start(y, False, False, 0)
-		hbox_y.pack_start(gtk.Label(), False, False, 3)
+		hbox_y.pack_start(Gtk.Label(), False, False, 3)
 		vbox_left.pack_start(hbox_x, False, False, 0)
 		vbox_left.pack_start(hbox_y, False, False, 0)
-		vbox_right = gtk.VBox()
-		width_adj = gtk.Adjustment(self.currimg.pixbuf_original.get_width(), 1, self.currimg.pixbuf_original.get_width(), 1, 10, 0)
-		width = gtk.SpinButton(width_adj, 0, 0)
+		vbox_right = Gtk.VBox()
+		width_adj = Gtk.Adjustment(self.currimg.pixbuf_original.get_width(), 1, self.currimg.pixbuf_original.get_width(), 1, 10, 0)
+		width = Gtk.SpinButton.new(width_adj, 0, 0)
 		width.set_numeric(True)
-		width.set_update_policy(gtk.UPDATE_IF_VALID)
+		width.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
 		width.set_wrap(False)
-		width_label = gtk.Label(_("Width:"))
+		width_label = Gtk.Label(label=_("Width:"))
 		width_label.set_alignment(0, 0.7)
-		height_adj = gtk.Adjustment(self.currimg.pixbuf_original.get_height(), 1, self.currimg.pixbuf_original.get_height(), 1, 10, 0)
-		height = gtk.SpinButton(height_adj, 0, 0)
+		height_adj = Gtk.Adjustment(self.currimg.pixbuf_original.get_height(), 1, self.currimg.pixbuf_original.get_height(), 1, 10, 0)
+		height = Gtk.SpinButton.new(height_adj, 0, 0)
 		height.set_numeric(True)
-		height.set_update_policy(gtk.UPDATE_IF_VALID)
+		height.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
 		height.set_wrap(False)
-		height_label = gtk.Label(_("Height:"))
-		width_label.set_size_request(height_label.size_request()[0], -1)
+		height_label = Gtk.Label(label=_("Height:"))
+		width_label.set_size_request(height_label.size_request().width, -1)
 		height_label.set_alignment(0, 0.7)
-		hbox_width = gtk.HBox()
-		hbox_height = gtk.HBox()
+		hbox_width = Gtk.HBox()
+		hbox_height = Gtk.HBox()
 		hbox_width.pack_start(width_label, False, False, 10)
 		hbox_width.pack_start(width, False, False, 0)
 		hbox_height.pack_start(height_label, False, False, 10)
 		hbox_height.pack_start(height, False, False, 0)
 		vbox_right.pack_start(hbox_width, False, False, 0)
 		vbox_right.pack_start(hbox_height, False, False, 0)
-		hbox2 = gtk.HBox()
-		hbox2.pack_start(gtk.Label(), expand=True)
+		hbox2 = Gtk.HBox()
+		hbox2.pack_start(Gtk.Label(), False, False, 0)
 		hbox2.pack_start(vbox_left, False, False, 0)
 		hbox2.pack_start(vbox_right, False, False, 0)
-		hbox2.pack_start(gtk.Label(), expand=True)
+		hbox2.pack_start(Gtk.Label(), False, False, 0)
 		dialog.vbox.pack_start(hbox, False, False, 0)
 		dialog.vbox.pack_start(hbox2, False, False, 15)
 		dialog.set_resizable(False)
 		dialog.vbox.show_all()
-		image.set_events(gtk.gdk.POINTER_MOTION_MASK | gtk.gdk.POINTER_MOTION_HINT_MASK | gtk.gdk.BUTTON_PRESS_MASK | gtk.gdk.BUTTON_MOTION_MASK | gtk.gdk.BUTTON_RELEASE_MASK)
-		image.connect("expose-event", self.crop_image_expose_cb, crop_pixbuf, image_width, image_height)
+		image.set_events(Gdk.EventMask.POINTER_MOTION_MASK | Gdk.EventMask.POINTER_MOTION_HINT_MASK | Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.BUTTON_MOTION_MASK | Gdk.EventMask.BUTTON_RELEASE_MASK)
+		image.connect("draw", self.crop_image_expose_cb, crop_pixbuf, image_width, image_height)
 		image.connect("motion_notify_event", self.crop_image_mouse_moved, image, 0, 0, x, y, width, height, image_width, image_height, width_adj, height_adj)
 		image.connect("button_press_event", self.crop_image_button_press, image)
 		image.connect("button_release_event", self.crop_image_button_release)
@@ -3383,8 +3403,9 @@ class Base:
 		self.drawing_crop_rectangle = False
 		self.update_rectangle = False
 		self.rect = None
+		image.window = image.get_property('window')
 		response = dialog.run()
-		if response == gtk.RESPONSE_ACCEPT:
+		if response == Gtk.ResponseType.ACCEPT:
 			dialog.destroy()
 			if self.rect != None:
 				self.currimg.crop(self.coords)
@@ -3422,10 +3443,13 @@ class Base:
 
 	def crop_image_mouse_moved(self, widget, event, image, x2, y2, x, y, width, height, image_width, image_height, width_adj, height_adj):
 		if event != None:
-			x2, y2, state = event.window.get_pointer()
+			x2 = event.x
+			y2 = event.y
+			state = event.get_state()
+			#x2, y2, state = event.window.get_pointer()
 		if self.drawing_crop_rectangle:
 			if self.crop_rectangle != None or self.update_rectangle:
-				gc = image.window.new_gc(function=gtk.gdk.INVERT)
+				gc = image.window.new_gc(function=Gdk.INVERT)
 				if self.rect != None:
 					# Get rid of the previous drawn rectangle:
 					image.window.draw_rectangle(gc, False, self.rect[0], self.rect[1], self.rect[2], self.rect[3])
@@ -3477,48 +3501,54 @@ class Base:
 				height.handler_unblock(self.height_changed)
 
 	def crop_image_button_press(self, widget, event, image):
-		x, y, state = event.window.get_pointer()
-		if (state & gtk.gdk.BUTTON1_MASK):
+		x = event.x
+		y = event.y
+		state = event.get_state()
+		#x, y, state = event.window.get_pointer()
+		if (state & Gdk.ModifierType.BUTTON1_MASK):
 			self.drawing_crop_rectangle = True
 			self.crop_rectangle = [x, y]
-			gc = image.window.new_gc(function=gtk.gdk.INVERT)
+			gc = image.window.new_gc(function=Gdk.INVERT)
 			if self.rect != None:
 				# Get rid of the previous drawn rectangle:
 				image.window.draw_rectangle(gc, False, self.rect[0], self.rect[1], self.rect[2], self.rect[3])
 				self.rect = None
 
 	def crop_image_button_release(self, widget, event):
-		x, y, state = event.window.get_pointer()
-		if not (state & gtk.gdk.BUTTON1_MASK):
+		x = event.x
+		y = event.y
+		state = event.get_state()
+		#x, y, state = event.window.get_pointer()
+		if not (state & Gdk.ModifierType.BUTTON1_MASK):
 			self.drawing_crop_rectangle = False
 
 	def saturation(self, action):
-		dialog = gtk.Dialog(_("Saturation"), self.window, gtk.DIALOG_MODAL, (gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT))
-		resizebutton = dialog.add_button(_("_Saturate"), gtk.RESPONSE_ACCEPT)
-		resizeimage = gtk.Image()
-		resizeimage.set_from_stock(gtk.STOCK_OK, gtk.ICON_SIZE_BUTTON)
+		dialog = Gtk.Dialog(_("Saturation"), self.window, Gtk.DialogFlags.MODAL, (Gtk.STOCK_CANCEL, Gtk.ResponseType.REJECT))
+		resizebutton = dialog.add_button(_("_Saturate"), Gtk.ResponseType.ACCEPT)
+		resizeimage = Gtk.Image()
+		resizeimage.set_from_stock(Gtk.STOCK_OK, Gtk.IconSize.BUTTON)
 		resizebutton.set_image(resizeimage)
-		scale = gtk.HScale()
+		scale = Gtk.HScale()
 		scale.set_draw_value(False)
-		scale.set_update_policy(gtk.UPDATE_DISCONTINUOUS)
+		#scale.set_update_policy(Gtk.UPDATE_DISCONTINUOUS)
 		scale.set_range(0, 2)
 		scale.set_increments(0.1, 0.5)
 		scale.set_value(1)
 		scale.connect('value-changed', self.saturation_preview)
-		label = gtk.Label(_("Saturation level:"))
+		label = Gtk.Label(label=_("Saturation level:"))
 		label.set_alignment(0, 0.5)
-		hbox1 = gtk.HBox()
+		hbox1 = Gtk.HBox()
 		hbox1.pack_start(label, True, True, 10)
-		hbox2 = gtk.HBox()
+		hbox2 = Gtk.HBox()
 		hbox2.pack_start(scale, True, True, 20)
-		dialog.vbox.pack_start(gtk.Label(" "))
-		dialog.vbox.pack_start(hbox1, False)
+		dialog.vbox.pack_start(Gtk.Label(" "), True, True, 0)
+		dialog.vbox.pack_start(hbox1, False, False, 0)
 		dialog.vbox.pack_start(hbox2, True, True, 10)
-		dialog.vbox.pack_start(gtk.Label(" "))
-		dialog.set_default_response(gtk.RESPONSE_ACCEPT)
+		dialog.vbox.pack_start(Gtk.Label(" "), True, True, 0)
+		dialog.set_default_response(Gtk.ResponseType.ACCEPT)
 		dialog.vbox.show_all()
 		response = dialog.run()
-		if response == gtk.RESPONSE_ACCEPT:
+		if response == Gtk.ResponseType.ACCEPT:
 			self.currimg.saturation(scale.get_value())
 			self.imageview.set_from_pixbuf(self.currimg.pixbuf)
 			self.image_modified = True
@@ -3528,8 +3558,8 @@ class Base:
 			dialog.destroy()
 
 	def saturation_preview(self, range):
-		while gtk.events_pending():
-			gtk.main_iteration()
+		while Gtk.events_pending():
+			Gtk.main_iteration()
 		try:
 			bak = self.currimg.pixbuf.copy()
 			self.currimg.pixbuf.saturate_and_pixelate(self.currimg.pixbuf, range.get_value(), False)
@@ -3541,51 +3571,51 @@ class Base:
 		gc.collect()
 
 	def resize_image(self, action):
-		dialog = gtk.Dialog(_("Resize Image"), self.window, gtk.DIALOG_MODAL, (gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT))
-		resizebutton = dialog.add_button(_("_Resize"), gtk.RESPONSE_ACCEPT)
-		resizeimage = gtk.Image()
-		resizeimage.set_from_stock(gtk.STOCK_OK, gtk.ICON_SIZE_BUTTON)
+		dialog = Gtk.Dialog(_("Resize Image"), self.window, Gtk.DialogFlags.MODAL, (Gtk.STOCK_CANCEL, Gtk.ResponseType.REJECT))
+		resizebutton = dialog.add_button(_("_Resize"), Gtk.ResponseType.ACCEPT)
+		resizeimage = Gtk.Image()
+		resizeimage.set_from_stock(Gtk.STOCK_OK, Gtk.IconSize.BUTTON)
 		resizebutton.set_image(resizeimage)
-		hbox_width = gtk.HBox()
-		width_adj = gtk.Adjustment(self.currimg.pixbuf_original.get_width(), 1, 100000000000, 1, 10, 0)
-		width = gtk.SpinButton(width_adj, 0, 0)
+		hbox_width = Gtk.HBox()
+		width_adj = Gtk.Adjustment(self.currimg.pixbuf_original.get_width(), 1, 100000000000, 1, 10, 0)
+		width = Gtk.SpinButton.new(width_adj, 0, 0)
 		width.set_numeric(True)
-		width.set_update_policy(gtk.UPDATE_IF_VALID)
+		width.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
 		width.set_wrap(False)
-		width_label = gtk.Label(_("Width:"))
+		width_label = Gtk.Label(label=_("Width:"))
 		width_label.set_alignment(0, 0.7)
 		hbox_width.pack_start(width_label, False, False, 10)
 		hbox_width.pack_start(width, False, False, 0)
-		hbox_width.pack_start(gtk.Label(_("pixels")), False, False, 10)
-		hbox_height = gtk.HBox()
-		height_adj = gtk.Adjustment(self.currimg.pixbuf_original.get_height(), 1, 100000000000, 1, 10, 0)
-		height = gtk.SpinButton(height_adj, 0, 0)
+		hbox_width.pack_start(Gtk.Label(_("pixels")), False, False, 10)
+		hbox_height = Gtk.HBox()
+		height_adj = Gtk.Adjustment(self.currimg.pixbuf_original.get_height(), 1, 100000000000, 1, 10, 0)
+		height = Gtk.SpinButton.new(height_adj, 0, 0)
 		height.set_numeric(True)
-		height.set_update_policy(gtk.UPDATE_IF_VALID)
+		height.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
 		height.set_wrap(False)
-		height_label = gtk.Label(_("Height:"))
-		width_label.set_size_request(height_label.size_request()[0], -1)
+		height_label = Gtk.Label(label=_("Height:"))
+		width_label.set_size_request(height_label.size_request().width, -1)
 		height_label.set_alignment(0, 0.7)
 		hbox_height.pack_start(height_label, False, False, 10)
 		hbox_height.pack_start(height, False, False, 0)
-		hbox_height.pack_start(gtk.Label(_("pixels")), False, False, 10)
-		hbox_aspect = gtk.HBox()
-		aspect_checkbox = gtk.CheckButton(_("Preserve aspect ratio"))
+		hbox_height.pack_start(Gtk.Label(_("pixels")), False, False, 10)
+		hbox_aspect = Gtk.HBox()
+		aspect_checkbox = Gtk.CheckButton(_("Preserve aspect ratio"))
 		aspect_checkbox.set_active(self.preserve_aspect)
 		hbox_aspect.pack_start(aspect_checkbox, False, False, 10)
-		vbox = gtk.VBox()
-		vbox.pack_start(gtk.Label(), False, False, 0)
+		vbox = Gtk.VBox()
+		vbox.pack_start(Gtk.Label(), False, False, 0)
 		vbox.pack_start(hbox_width, False, False, 0)
 		vbox.pack_start(hbox_height, False, False, 0)
-		vbox.pack_start(gtk.Label(), False, False, 0)
+		vbox.pack_start(Gtk.Label(), False, False, 0)
 		vbox.pack_start(hbox_aspect, False, False, 0)
-		vbox.pack_start(gtk.Label(), False, False, 0)
-		hbox_total = gtk.HBox()
+		vbox.pack_start(Gtk.Label(), False, False, 0)
+		hbox_total = Gtk.HBox()
 		if self.currimg.animation:
 			pixbuf, image_width, image_height = self.get_pixbuf_of_size(self.currimg.pixbuf_original.get_static_image(), 96, self.zoom_quality)
 		else:
 			pixbuf, image_width, image_height = self.get_pixbuf_of_size(self.currimg.pixbuf_original, 96, self.zoom_quality)
-		image = gtk.Image()
+		image = Gtk.Image()
 		image.set_from_pixbuf(self.pixbuf_add_border(pixbuf))
 		hbox_total.pack_start(image, False, False, 10)
 		hbox_total.pack_start(vbox, False, False, 10)
@@ -3593,10 +3623,10 @@ class Base:
 		width.connect('value-changed', self.preserve_image_aspect, "width", height)
 		height.connect('value-changed', self.preserve_image_aspect, "height", width)
 		aspect_checkbox.connect('toggled', self.aspect_ratio_toggled, width, height)
-		dialog.set_default_response(gtk.RESPONSE_ACCEPT)
+		dialog.set_default_response(Gtk.ResponseType.ACCEPT)
 		dialog.vbox.show_all()
 		response = dialog.run()
-		if response == gtk.RESPONSE_ACCEPT:
+		if response == Gtk.ResponseType.ACCEPT:
 			pixelheight = height.get_value_as_int()
 			pixelwidth = width.get_value_as_int()
 			dialog.destroy()
@@ -3660,7 +3690,7 @@ class Base:
 			self.usettings['listwrap_mode']. Same action is made for first image
 			and "PREV". """
 		if self.slideshow_mode and action != "ss":
-			gobject.source_remove(self.timer_delay)
+			GObject.source_remove(self.timer_delay)
 		if ((location=="PREV" or location=="NEXT" or location=="RANDOM")\
 				and len(self.image_list) > 1) or ((location == "PREV_SUBFOLDER" \
 				or location == "NEXT_SUBFOLDER") and len(self.firstimgindex_subfolders_list) >= 2)\
@@ -3746,23 +3776,23 @@ class Base:
 					if self.fullscreen_mode:
 						self.change_cursor(None)
 					if location == "PREV":
-						dialog = gtk.MessageDialog(self.window, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_QUESTION, gtk.BUTTONS_YES_NO, _("You are viewing the first image in the list. Wrap around to the last image?"))
+						dialog = Gtk.MessageDialog(self.window, Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT, Gtk.MessageType.QUESTION, Gtk.ButtonsType.YES_NO, _("You are viewing the first image in the list. Wrap around to the last image?"))
 					elif location == "NEXT":
-						dialog = gtk.MessageDialog(self.window, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_QUESTION, gtk.BUTTONS_YES_NO, _("You are viewing the last image in the list. Wrap around to the first image?"))
+						dialog = Gtk.MessageDialog(self.window, Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT, Gtk.MessageType.QUESTION, Gtk.ButtonsType.YES_NO, _("You are viewing the last image in the list. Wrap around to the first image?"))
 					elif location == "PREV_SUBFOLDER":
-						dialog = gtk.MessageDialog(self.window, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_QUESTION, gtk.BUTTONS_YES_NO, _("You are viewing the first folder in the list. Wrap around to the first image of the last folder?"))
+						dialog = Gtk.MessageDialog(self.window, Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT, Gtk.MessageType.QUESTION, Gtk.ButtonsType.YES_NO, _("You are viewing the first folder in the list. Wrap around to the first image of the last folder?"))
 					elif location == "NEXT_SUBFOLDER":
-						dialog = gtk.MessageDialog(self.window, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_QUESTION, gtk.BUTTONS_YES_NO, _("You are viewing the last folder in the list. Wrap around to the first image of the first folder?"))
+						dialog = Gtk.MessageDialog(self.window, Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT, Gtk.MessageType.QUESTION, Gtk.ButtonsType.YES_NO, _("You are viewing the last folder in the list. Wrap around to the first image of the first folder?"))
 					elif location == "RANDOM":
-						dialog = gtk.MessageDialog(self.window, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_QUESTION, gtk.BUTTONS_YES_NO, _("All images have been viewed. Would you like to cycle through the images again?"))
+						dialog = Gtk.MessageDialog(self.window, Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT, Gtk.MessageType.QUESTION, Gtk.ButtonsType.YES_NO, _("All images have been viewed. Would you like to cycle through the images again?"))
 					dialog.set_title(_("Wrap?"))
 					dialog.label.set_property('can-focus', False)
-					dialog.set_default_response(gtk.RESPONSE_YES)
+					dialog.set_default_response(Gtk.ResponseType.YES)
 					# Wrapping dialog.run() and .destroy() in .threads_enter()/leave() to prevent a hangup on linux
-					# Could also be done with 'with gtk.gdk.lock:' but that doesn't work on windows.
+					# Could also be done with 'with Gdk.lock:' but that doesn't work on windows.
 					try:
 						if called_by_timeout:
-							gtk.gdk.threads_enter()
+							Gdk.threads_enter()
 						self.user_prompt_visible = True
 						response = dialog.run()
 						dialog.destroy()
@@ -3770,10 +3800,9 @@ class Base:
 						response = None
 					finally:
 						if called_by_timeout:
-							gtk.gdk.threads_leave()
+							Gdk.threads_leave()
 						self.user_prompt_visible = False
-					if response == gtk.RESPONSE_YES:
-						print "WE got something"
+					if response == Gtk.ResponseType.YES:
 						if location == "PREV":
 							self.curr_img_in_list = len(self.image_list)-1
 						elif location == "NEXT" or location == "NEXT_SUBFOLDER":
@@ -3816,18 +3845,18 @@ class Base:
 				self.curr_img_in_list = int(location)
 			if self.curr_img_in_list != prev_img: #don't load the same image again if already loaded
 				if not self.fullscreen_mode and (not self.slideshow_mode or (self.slideshow_mode and action != "ss")):
-					self.change_cursor(gtk.gdk.Cursor(gtk.gdk.WATCH))
+					self.change_cursor(Gdk.Cursor.new(Gdk.CursorType.WATCH))
 				if location == "PREV" or (valid_int(location) and int(location) == prev_img-1):
-					self.load_when_idle = gobject.idle_add(self.load_new_image, True, False, True, True, True, True)
+					self.load_when_idle = GObject.idle_add(self.load_new_image, True, False, True, True, True, True)
 				else:
-					self.load_when_idle = gobject.idle_add(self.load_new_image, False, False, True, True, True, True)
+					self.load_when_idle = GObject.idle_add(self.load_new_image, False, False, True, True, True, True)
 				self.set_go_navigation_sensitivities(False)
 			if self.slideshow_mode:
 				#if self.curr_slideshow_random:
-				#	self.timer_delay = gobject.timeout_add(int(self.curr_slideshow_delay*1000), self.goto_random_image, "ss",True)
+				#	self.timer_delay = GObject.timeout_add(int(self.curr_slideshow_delay*1000), self.goto_random_image, "ss",True)
 				#else:
-					self.timer_delay = gobject.timeout_add(int(self.curr_slideshow_delay*1000), self.goto_next_image, "ss", True)
-			gobject.idle_add(self.thumbpane_select, self.curr_img_in_list)
+					self.timer_delay = GObject.timeout_add(int(self.curr_slideshow_delay*1000), self.goto_next_image, "ss", True)
+			GObject.idle_add(self.thumbpane_select, self.curr_img_in_list)
 
 	def set_go_navigation_sensitivities(self, skip_initial_check):
 		# setting skip_image_list_check to True is useful when calling from
@@ -3940,15 +3969,15 @@ class Base:
 
 	def load_new_image_stop_now(self):
 		try:
-			gobject.source_remove(self.load_when_idle)
+			GObject.source_remove(self.load_when_idle)
 		except:
 			pass
 		try:
-			gobject.source_remove(self.preload_when_idle)
+			GObject.source_remove(self.preload_when_idle)
 		except:
 			pass
 		try:
-			gobject.source_remove(self.preload_when_idle2)
+			GObject.source_remove(self.preload_when_idle2)
 		except:
 			pass
 
@@ -3958,9 +3987,9 @@ class Base:
 		except:
 			self.image_load_failed(True)
 		if preload_next_image_after:
-			self.preload_when_idle = gobject.idle_add(self.preload_next_image, False)
+			self.preload_when_idle = GObject.idle_add(self.preload_next_image, False)
 		if preload_prev_image_after:
-			self.preload_when_idle2 = gobject.idle_add(self.preload_prev_image, False)
+			self.preload_when_idle2 = GObject.idle_add(self.preload_prev_image, False)
 
 	def load_new_image2(self, check_prev_last, use_current_pixbuf_original, reset_cursor, perform_onload_action, skip_recentfiles=False, image_name=""):
 		# check_prev_last is used to determine if we should check whether
@@ -4013,7 +4042,6 @@ class Base:
 					elif self.nextimg.index == prev_index:
 						self.previmg = self.nextimg
 						self.nextimg.unload_pixbuf()
-
 		if used_prev or used_next:
 			if self.verbose and self.currimg.name != "":
 				print _("Loading(preloaded): %s") % self.currimg.name
@@ -4047,7 +4075,7 @@ class Base:
 				self.currimg.load_pixbuf(image_name)
 			if self.currimg.animation:
 				self.zoom_1_to_1(None, False, False)
-				self.set_image_sensitivities(False)
+				self.set_image_sensitivities(True)
 			else:
 				self.zoom_check_and_execute(None, False, False)
 				self.set_image_sensitivities(True)
@@ -4085,7 +4113,7 @@ class Base:
 				# Determine self.nextimg.zoomratio
 				self.zoom_check_and_execute(None, True, False)
 				# Zoom pixbuf
-				colormap = self.imageview.get_colormap()
+				colormap = self.imageview.get_visual()
 				self.nextimg.zoom_pixbuf(self.nextimg.zoomratio, self.zoom_quality, colormap)
 				gc.collect()
 				if self.verbose:
@@ -4114,7 +4142,7 @@ class Base:
 				# Determine self.previmg.zoomratio
 				self.zoom_check_and_execute(None, False, True)
 				# Always start with the original image to preserve quality!
-				colormap = self.imageview.get_colormap()
+				colormap = self.imageview.get_visual()
 				self.previmg.zoom_pixbuf(self.previmg.zoomratio, self.zoom_quality, colormap)
 				gc.collect()
 				if self.verbose:
@@ -4124,10 +4152,12 @@ class Base:
 			self.previmg.unload_pixbuf()
 
 	def change_cursor(self, type):
-		for i in gtk.gdk.window_get_toplevels():
-			if i.get_window_type() != gtk.gdk.WINDOW_TEMP and i.get_window_type() != gtk.gdk.WINDOW_CHILD:
-				i.set_cursor(type)
-		self.layout.window.set_cursor(type)
+		#self.window.get_root_window().set_cursor(type)
+		#for i in Gdk.window_get_toplevels():
+		#	if i.get_window_type() != Gdk.WINDOW_TEMP and i.get_window_type() != Gdk.WINDOW_CHILD:
+		#		i.set_cursor(type)
+		#self.layout.get_window().set_cursor(type)
+		pass
 
 	def expand_filelist_and_load_image(self, inputlist):
 		# Takes the current list (i.e. ["pic.jpg", "pic2.gif", "../images"]) and
@@ -4135,7 +4165,7 @@ class Base:
 		self.thumblist.clear()
 		self.images_found = 0
 		self.stop_now = True # Make sure that any previous search process is stopped
-		self.change_cursor(gtk.gdk.Cursor(gtk.gdk.WATCH))
+		self.change_cursor(Gdk.Cursor.new(Gdk.CursorType.WATCH))
 		# Reset preload images:
 		self.nextimg.unload_pixbuf()
 		self.previmg.unload_pixbuf()
@@ -4146,8 +4176,8 @@ class Base:
 				self.searching_for_images = True
 				self.update_statusbar()
 		if not self.closing_app:
-			while gtk.events_pending():
-				gtk.main_iteration()
+			while Gtk.events_pending():
+				Gtk.main_iteration()
 		first_image = ""
 		first_image_found = False
 		first_image_loaded = False
@@ -4221,12 +4251,13 @@ class Base:
 				self.image_loaded = True
 				first_image_loaded_successfully = True
 				first_image_loaded = True
-				print "Quickloaded image ahead of imagelist"
+				if (self.verbose):
+					print _("Quickloaded image ahead of imagelist")
 				if not self.closing_app:
-					while gtk.events_pending():
-						gtk.main_iteration(True)
+					while Gtk.events_pending():
+						Gtk.main_iteration()
 			except:
-				pass
+				oass
 
 		self.stop_now = False
 		# If open all images in dir...
@@ -4290,8 +4321,8 @@ class Base:
 									second_image = self.image_list[itemnum]
 									self.set_go_navigation_sensitivities(True)
 									go_buttons_enabled = True
-									while gtk.events_pending():
-										gtk.main_iteration(True)
+									while Gtk.events_pending():
+										Gtk.main_iteration()
 								if not first_image_found:
 									first_image_found = True
 									first_image = self.image_list[itemnum]
@@ -4313,8 +4344,8 @@ class Base:
 					self.image_loaded = True
 					first_image_loaded_successfully = True
 					if not self.closing_app:
-						while gtk.events_pending():
-							gtk.main_iteration(True)
+						while Gtk.events_pending():
+							Gtk.main_iteration()
 					if first_image_came_from_dir:
 						self.image_list = []
 				# Pre-load second image:
@@ -4344,8 +4375,8 @@ class Base:
 				prev_image = image
 
 			if not self.closing_app:
-				while gtk.events_pending():
-					gtk.main_iteration(True)
+				while Gtk.events_pending():
+					Gtk.main_iteration()
 		if not first_image_loaded_successfully:
 			self.image_load_failed(False, init_image)
 		else:
@@ -4411,8 +4442,8 @@ class Base:
 			item = item.decode('utf-8')
 			for item2 in os.listdir(item):
 				if not self.closing_app and not self.stop_now:
-					while gtk.events_pending():
-						gtk.main_iteration(True)
+					while Gtk.events_pending():
+						Gtk.main_iteration()
 					item2 = item + os.sep + item2
 					item_fullpath2 = os.path.abspath(item2)
 					if (not self.usettings['open_hidden_files'] and os.path.basename(item_fullpath2)[0] != '.') or self.usettings['open_hidden_files']:
@@ -4447,9 +4478,9 @@ class Base:
 
 	def register_file_with_recent_docs(self, imgfile):
 		self.recent_file_add_and_refresh(imgfile)
-		if os.path.isfile(imgfile) and gtk.check_version(2, 10, 0) == None:
+		if os.path.isfile(imgfile) and Gtk.check_version(2, 10, 0) == None:
 			try:
-				gtk_recent_manager = gtk.recent_manager_get_default()
+				gtk_recent_manager = Gtk.RecentManager.get_default()
 				uri = ''
 				if imgfile[:7] != 'file://':
 					uri = 'file://'
@@ -4463,14 +4494,14 @@ class Base:
 					raise
 
 	def valid_image(self, file):
-		test = gtk.gdk.pixbuf_get_file_info(file)
-		if test == None:
+		test = GdkPixbuf.Pixbuf.get_file_info(file)
+		if test[0] == None:
 			return False
-		elif test[0]['name'] == "wbmp":
+		elif test[0].get_name() == "wbmp":
 			# some regular files are thought to be wbmp for whatever reason,
 			# so let's check further.. :(
 			try:
-				test2 = gtk.gdk.pixbuf_new_from_file(file)
+				test2 = GdkPixbuf.Pixbuf.new_from_file(file)
 				return True
 			except:
 				return False
@@ -4486,16 +4517,16 @@ class Base:
 				self.update_title()
 				self.set_slideshow_sensitivities()
 				if not self.curr_slideshow_random:
-					self.timer_delay = gobject.timeout_add(int(self.curr_slideshow_delay*1000), self.goto_next_image, "ss", True)
+					self.timer_delay = GObject.timeout_add(int(self.curr_slideshow_delay*1000), self.goto_next_image, "ss", True)
 				else:
 					self.reinitialize_randomlist()
-					self.timer_delay = gobject.timeout_add(int(self.curr_slideshow_delay*1000), self.goto_random_image, "ss")
+					self.timer_delay = GObject.timeout_add(int(self.curr_slideshow_delay*1000), self.goto_random_image, "ss")
 				self.ss_start.hide()
 				self.ss_stop.show()
-				timer_screensaver = gobject.timeout_add(1000, self.disable_screensaver_in_slideshow_mode)
+				timer_screensaver = GObject.timeout_add(1000, self.disable_screensaver_in_slideshow_mode)
 			else:
 				self.slideshow_mode = False
-				gobject.source_remove(self.timer_delay)
+				GObject.source_remove(self.timer_delay)
 				self.update_title()
 				self.set_slideshow_sensitivities()
 				self.set_zoom_sensitivities()
@@ -4559,13 +4590,13 @@ class Base:
 			self.slideshow_window.show_all()
 			self.slideshow_window2.show_all()
 			if not self.closing_app:
-				while gtk.events_pending():
-					gtk.main_iteration()
+				while Gtk.events_pending():
+					Gtk.main_iteration()
 
-			ss_winheight = self.slideshow_window.allocation.height
-			ss_win2width = self.slideshow_window2.allocation.width
-			winheight = self.window.allocation.height
-			winwidth = self.window.allocation.width
+			ss_winheight = self.slideshow_window.get_allocation().height
+			ss_win2width = self.slideshow_window2.get_allocation().width
+			winheight = self.window.get_allocation().height
+			winwidth = self.window.get_allocation().width
 			y = -3.0
 			self.controls_moving = True
 			while y < ss_winheight:
@@ -4573,8 +4604,8 @@ class Base:
 				self.slideshow_window2.move(winwidth-ss_win2width-2+xpos, int(winheight-y-2)+ypos)
 				y += 0.05
 				if not self.closing_app:
-					while gtk.events_pending():
-						gtk.main_iteration()
+					while Gtk.events_pending():
+						Gtk.main_iteration()
 			self.controls_moving = False
 
 	def slideshow_controls_hide(self):
@@ -4583,31 +4614,31 @@ class Base:
 
 			(xpos, ypos) = self.window.get_position()
 
-			ss_winheight = self.slideshow_window.allocation.height
-			ss_win2width = self.slideshow_window2.allocation.width
-			winheight = self.window.allocation.height
-			winwidth = self.window.allocation.width
-			y = float(self.slideshow_window.allocation.height*1.0)
+			ss_winheight = self.slideshow_window.get_allocation().height
+			ss_win2width = self.slideshow_window2.get_allocation().width
+			winheight = self.window.get_allocation().height
+			winwidth = self.window.get_allocation().width
+			y = float(self.slideshow_window.get_allocation().height*1.0)
 			self.controls_moving = True
 			while y > -3:
 				self.slideshow_window.move(2+xpos, int(winheight-y-2)+ypos)
 				self.slideshow_window2.move(winwidth-ss_win2width-2+xpos, int(winheight-y-2)+ypos)
 				y -= 0.05
 				if not self.closing_app:
-					while gtk.events_pending():
-						gtk.main_iteration()
+					while Gtk.events_pending():
+						Gtk.main_iteration()
 			self.controls_moving = False
 
 	def disable_screensaver_in_slideshow_mode(self):
 		if self.slideshow_mode and self.usettings['disable_screensaver']:
 			test = os.spawnlp(os.P_WAIT, "/usr/bin/xscreensaver-command", "xscreensaver-command", "-deactivate")
 			if test <> 127:
-				timer_screensaver = gobject.timeout_add(1000, self.disable_screensaver_in_slideshow_mode)
+				timer_screensaver = GObject.timeout_add(1000, self.disable_screensaver_in_slideshow_mode)
 
 	def main(self):
-		gtk.gdk.threads_enter()
-		gtk.main()
-		gtk.gdk.threads_leave()
+		Gdk.threads_enter()
+		Gtk.main()
+		Gdk.threads_leave()
 
 class ImageData:
 	
@@ -4635,7 +4666,7 @@ class ImageData:
 
 	def load_pixbuf(self, name, index=-2):
 		# Load the image in name into self.pixbuf_original
-		animtest = gtk.gdk.PixbufAnimation(name)
+		animtest = GdkPixbuf.PixbufAnimation.new_from_file(name)
 		self.animation = not animtest.is_static_image()
 		if self.animation:
 			self.pixbuf_original = animtest
@@ -4662,7 +4693,7 @@ class ImageData:
 					self.rotate_pixbuf(270)
 		self.zoomratio = 1
 		self.isloaded = True
-		self.fileinfo = gtk.gdk.pixbuf_get_file_info(self.name)[0]
+		self.fileinfo = GdkPixbuf.Pixbuf.get_file_info(self.name)[0]
 
 	def unload_pixbuf(self):
 		self.index = -1
@@ -4707,7 +4738,7 @@ class ImageData:
 			height = old_pix.get_height()
 			d, w, h, rws = func(old_pix.get_pixels(), width, height, old_pix.get_rowstride(), old_pix.get_n_channels())
 			if d:
-				return gtk.gdk.pixbuf_new_from_data(d, old_pix.get_colorspace(), old_pix.get_has_alpha(), old_pix.get_bits_per_sample(), w, h, rws), w, h
+				return GdkPixbuf.Pixbuf.new_from_data(d, old_pix.get_colorspace(), old_pix.get_has_alpha(), old_pix.get_bits_per_sample(), w, h, rws), w, h
 			return old_pix, width, height
 		self.pixbuf_original, self.width_original, self.height_original = transform(self.pixbuf_original, func)
 		self.pixbuf         , self.width         ,  self.height         = transform(self.pixbuf         , func)
@@ -4735,7 +4766,7 @@ class ImageData:
 		self.pixbuf.saturate_and_pixelate(self.pixbuf, satval, False)
 
 	def crop(self, coords):
-		temp_pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, self.pixbuf_original.get_has_alpha(), 8, coords[2], coords[3])
+		temp_pixbuf = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, self.pixbuf_original.get_has_alpha(), 8, coords[2], coords[3])
 		self.pixbuf_original.copy_area(coords[0], coords[1], coords[2], coords[3], temp_pixbuf, 0, 0)
 		self.pixbuf_original = temp_pixbuf
 		self.reset_wh()

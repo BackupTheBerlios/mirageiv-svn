@@ -1,5 +1,6 @@
 v1.0 - future
 	+ Fixed bug with missing icons in slideshow controls
+	+ Changes: Now uses Gtk3 through pygobject
 
 v1.0_pre1 - December 10, 2012
 	+ Added Numerical Aware Comparison (numacomp) as a sorting option.
