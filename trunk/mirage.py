@@ -34,7 +34,7 @@ import stat, time, subprocess, shutil, filecmp
 import tempfile, socket, threading, copy
 from fractions import Fraction
 import json
-
+import argparse
 
 gettext.install("mirage", unicode=1)
 
@@ -86,6 +86,27 @@ def valid_int(inputstring):
 class Base:
 
 	def __init__(self):
+		# Read any passed options/arguments:
+		parser = argparse.ArgumentParser(description="Mirage image viewer")
+		parser.add_argument("-v","--version", action="version", version="mirage "+__version__,
+			help=_("Show version information and exit"))
+		
+		parser.add_argument("-V", "--verbose", action="store_true", default=False,
+			help=_("Show more detailed information"))
+		parser.add_argument("-R", "--recursive", action="store_true", default=False,
+			help=_("Recursively include all images found in subdirectories of FOLDERS"))
+		parser.add_argument("-s", "--slideshow", action="store_true", default=False,
+			help=_("Start in slideshow mode"))
+		parser.add_argument("-f", "--fullscreen", action="store_true", default=False,
+			help=_("Start in fullscreen mode"))
+		parser.add_argument("-n", "--no-sort", action="store_true", default=False,
+			help=_("Do not sort input list"))
+		parser.add_argument("-o", "--onload", action="store_true",
+			help=_("Execute 'cmd' when an image is loaded, uses same syntax as custom actions, i.e. mirage -o 'echo file is %%F'"))
+		parser.add_argument("files", nargs="*",
+			help=_("Files/Folders to open"))
+		iargs = parser.parse_args()
+
 		#Gdk.threads_init()
 		Gdk.threads_init()
 
@@ -204,39 +225,16 @@ class Base:
 		self.thumbpane_bottom_coord_loaded = 0
 		self.no_sort = False
 
-		# Read any passed options/arguments:
-		try:
-			opts, args = getopt.getopt(sys.argv[1:], "hRvVsfno:", ["help", "version", "recursive", "verbose", "slideshow", "fullscreen", "no-sort", "onload="])
-		except getopt.GetoptError:
-			# print help information and exit:
-			self.print_usage()
-			sys.exit(2)
-		# If options were passed, perform action on them.
-		go_into_fullscreen = False
-		start_slideshow = False
-		if opts != []:
-			for o, a in opts:
-				if o in ("-v", "--version"):
-					self.print_version()
-					sys.exit(2)
-				elif o in ("-h", "--help"):
-					self.print_usage()
-					sys.exit(2)
-				elif o in ("-R", "--recursive"):
-					self.recursive = True
-				elif o in ("-V", "--verbose"):
-					self.verbose = True
-				elif o in ("-f", "--fullscreen"):
-					go_into_fullscreen = True
-				elif o in ("-s", "--slideshow", "-f", "--fullscreen"):
-					start_slideshow = True
-				elif o in ("-n", "--no-sort"):
-					self.no_sort = True
-				elif o in ("-o", "--onload"):
-					self.onload_cmd = a
-				else:
-					self.print_usage()
-					sys.exit(2)
+		print iargs
+		if iargs.recursive:
+			self.recursive = iargs.recursive
+		if iargs.verbose:
+			self.verbose = iargs.verbose
+		go_into_fullscreen = iargs.fullscreen
+		start_slideshow = iargs.slideshow
+		if iargs.no_sort:
+			self.no_sort = iargs.no_sort
+		args = iargs.files
 
 		# slideshow_delay is the user's preference, whereas curr_slideshow_delay is
 		# the current delay (which can be changed without affecting the 'default')
@@ -1350,28 +1348,6 @@ class Base:
 		else:
 			self.set_zoom_out_sensitivities(False)
 			self.set_zoom_in_sensitivities(False)
-
-	def print_version(self):
-		print _("Version: %s") % __appname__, __version__
-		print _("Website: http://mirageiv.berlios.de")
-
-	def print_usage(self):
-		self.print_version()
-		print ""
-		print _("Usage: mirage [OPTION]... FILES|FOLDERS...")
-		print ""
-		print _("Options") + ":"
-		print "  -h, --help           " + _("Show this help and exit")
-		print "  -v, --version        " + _("Show version information and exit")
-		print "  -V, --verbose        " + _("Show more detailed information")
-		print "  -R, --recursive      " + _("Recursively include all images found in")
-		print "                       " + _("subdirectories of FOLDERS")
-		print "  -s, --slideshow      " + _("Start in slideshow mode")
-		print "  -f, --fullscreen     " + _("Start in fullscreen mode")
-		print "  -n, --no-sort        " + _("Do not sort input list")
-		print "  -o, --onload 'cmd'   " + _("Execute 'cmd' when an image is loaded")
-		print "                       " + _("uses same syntax as custom actions,")
-		print "                       " + _("i.e. mirage -o 'echo file is %F'")
 
 	def delay_changed(self, action):
 		self.curr_slideshow_delay = self.ss_delayspin.get_value()
