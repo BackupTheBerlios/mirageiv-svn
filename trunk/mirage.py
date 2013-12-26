@@ -35,6 +35,7 @@ import tempfile, socket, threading, copy
 from fractions import Fraction
 import json
 import argparse
+import traceback
 
 gettext.install("mirage", unicode=1)
 
@@ -254,14 +255,10 @@ class Base:
 		icon = GdkPixbuf.Pixbuf.new_from_file(self.find_path('stock_fullscreen.png'))
 		self.iconfactory.add('fullscreen', Gtk.IconSet(icon))
 		self.iconfactory.add_default()
-		try:
-			test = Gtk.Button("", Gtk.STOCK_LEAVE_FULLSCREEN)
-			leave_fullscreen_icon = Gtk.STOCK_LEAVE_FULLSCREEN
-			fullscreen_icon = Gtk.STOCK_FULLSCREEN
-		except:
-			# This will allow gtk 2.6 users to run Mirage
-			leave_fullscreen_icon = 'leave-fullscreen'
-			fullscreen_icon = 'fullscreen'
+
+		leave_fullscreen_icon = Gtk.STOCK_LEAVE_FULLSCREEN
+		fullscreen_icon = Gtk.STOCK_FULLSCREEN
+
 		# Note. Stock items intentionally set to None to use standard stock defaults
 		actions = (
 			('FileMenu', None, _('_File')),
@@ -700,21 +697,17 @@ class Base:
 		# Create the right-side controls
 		self.slideshow_window2 = Gtk.Window(Gtk.WindowType.POPUP)
 		self.slideshow_controls2 = Gtk.HBox()
-		try:
-			self.ss_exit = Gtk.Button()
-			self.ss_exit.add(Gtk.Image.new_from_stock(Gtk.STOCK_LEAVE_FULLSCREEN, Gtk.IconSize.BUTTON))
-		except:
-			self.ss_exit = Gtk.Button()
-			self.ss_exit.set_image(Gtk.Image.new_from_stock('leave-fullscreen', Gtk.IconSize.BUTTON))
+
+		self.ss_exit = Gtk.Button()
+		self.ss_exit.add(Gtk.Image.new_from_stock(Gtk.STOCK_LEAVE_FULLSCREEN, Gtk.IconSize.BUTTON))
 		self.ss_exit.set_property('can-focus', False)
 		self.ss_exit.connect('clicked', self.leave_fullscreen)
 		self.ss_randomize = Gtk.ToggleButton()
-		try:
-			pixbuf = GdkPixbuf.Pixbuf.new_from_file(self.find_path('stock_shuffle.png'))
-			self.iconfactory.add('stock-shuffle', Gtk.IconSet(pixbuf))
-			self.ss_randomize.set_image(Gtk.Image.new_from_stock('stock-shuffle', Gtk.IconSize.BUTTON))
-		except:
-			self.ss_randomize.set_label("Rand")
+
+		pixbuf = GdkPixbuf.Pixbuf.new_from_file(self.find_path('stock_shuffle.png'))
+		self.iconfactory.add('stock-shuffle', Gtk.IconSet(pixbuf))
+		self.ss_randomize.set_image(Gtk.Image.new_from_stock('stock-shuffle', Gtk.IconSize.BUTTON))
+
 		self.ss_randomize.connect('toggled', self.random_changed)
 
 		spin_adj = Gtk.Adjustment(self.usettings['slideshow_delay'], 0, 50000, 1,100, 0)
@@ -748,9 +741,7 @@ class Base:
 					base, ext = os.path.splitext(filename)
 					if len(base) > 27:
 						# Replace end of file name (excluding extension) with ..
-						try:
 							menu_name = base[:25] + '..' + ext
-						except:
 							menu_name = filename
 					else:
 						menu_name = filename
@@ -864,7 +855,7 @@ class Base:
 					pix = self.pixbuf_add_border(pix)
 					try:
 						self.thumblist[imgnum] = [pix]
-					except:
+					except IndexError:
 						pass
 					self.thumbscroll.get_vscrollbar().handler_unblock(self.thumb_scroll_handler)
 
@@ -909,6 +900,8 @@ class Base:
 			pix.savev(thumb_url, "png", ['tEXt::Thumb::URI', 'tEXt::Thumb::MTime', 'tEXt::Software'],[uri,file_mtime,'Mirage' + __version__])
 			return pix
 		except:
+			if self.verbose:
+				traceback.print_exc()
 			return None
 
 	def thumbpane_load_image(self, treeview, imgnum):
@@ -928,7 +921,8 @@ class Base:
 				self.thumbpane_set_image(self.image_list[imgnum], imgnum)
 			GObject.idle_add(self.thumbpane_load_image, treeview, imgnum)
 		except:
-			pass
+			if self.verbose:
+				traceback.print_exc()
 
 	def thumbpane_select(self, imgnum):
 		if self.usettings['thumbpane_show']:
@@ -967,6 +961,8 @@ class Base:
 			imgheight = 2 + int(imgheight) # Account for border that will be added to thumbnails..
 			imgwidth = self.usettings['thumbnail_size']
 		except:
+			if self.verbose:
+				traceback.print_exc()
 			imgheight = 2 + self.usettings['thumbnail_size']
 			imgwidth = self.usettings['thumbnail_size']
 		blank_pix = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, imgwidth, imgheight)
@@ -1175,7 +1171,8 @@ class Base:
 					if action.get_name() == self.usettings['action_names'][i]:
 						self.parse_action_command(self.usettings['action_commands'][i], self.usettings['action_batch'][i])
 				except:
-					pass
+					if self.verbose:
+						traceback.print_exc()
 
 
 	def parse_action_command2(self, cmd, imagename):
@@ -1266,6 +1263,8 @@ class Base:
 				if self.currimg.writable_format():
 					self.UIManager.get_widget('/MainMenu/FileMenu/Save').set_sensitive(enable)
 			except:
+				if self.verbose:
+					traceback.print_exc()
 				self.UIManager.get_widget('/MainMenu/FileMenu/Save').set_sensitive(False)
 		if self.actionGroupCustom:
 			for action in self.usettings['action_names']:
@@ -1396,6 +1395,8 @@ class Base:
 				if newvalue >= self.layout.get_hadjustment().lower and newvalue <= (self.layout.get_hadjustment().upper - self.layout.get_hadjustment().page_size):
 					self.layout.get_hadjustment().set_value(newvalue)
 			except:
+				if self.verbose:
+					traceback.print_exc()
 				pass
 		if self.vscroll.get_property('visible'):
 			try:
@@ -1404,7 +1405,8 @@ class Base:
 					self.layout.get_vadjustment().set_value(newvalue)
 				self.previmg_width = self.currimg.width
 			except:
-				pass
+				if self.verbose:
+					traceback.print_exc()
 		self.updating_adjustments = False
 
 	def window_resized(self, widget, allocation, force_update=False):
@@ -1587,6 +1589,9 @@ class Base:
 				else:
 					error_dialog.destroy()
 		except:
+			if self.verbose:
+				traceback.print_exc()
+
 			error_dialog = Gtk.MessageDialog(self.window, Gtk.DialogFlags.MODAL, Gtk.MessageType.WARNING, Gtk.ButtonsType.CLOSE, _('Unable to save %s') % dest_name)
 			error_dialog.set_title(_("Save"))
 			error_dialog.run()
@@ -1831,6 +1836,8 @@ class Base:
 			ratio = int(100 * self.currimg.zoomratio)
 			status_text = os.path.basename(self.currimg.name)+ ":  " +  str(self.currimg.pixbuf_original.get_width()) + "x" + str(self.currimg.pixbuf_original.get_height()) + "   " + str(filesize) + "KB   " + str(ratio) + "%   "
 		except:
+			if self.verbose:
+				traceback.print_exc()
 			status_text=_("Cannot load image.")
 		self.statusbar.push(self.statusbar.get_context_id(""), status_text)
 		status_text = ""
@@ -2837,7 +2844,7 @@ class Base:
 					self.image_modified = False
 					try:
 						os.remove(self.thumbnail_get_name(self.currimg.name)[1])
-					except:
+					except IOError:
 						pass
 					self.recent_file_remove_and_refresh_name(self.currimg.name)
 					iter = self.thumblist.get_iter((self.curr_img_in_list,))
@@ -2936,11 +2943,9 @@ class Base:
 	def show_about(self, action):
 		# Help > About
 		self.about_dialog = Gtk.AboutDialog()
-		try:
-			self.about_dialog.set_transient_for(self.window)
-			self.about_dialog.set_modal(True)
-		except:
-			pass
+		self.about_dialog.set_transient_for(self.window)
+		self.about_dialog.set_modal(True)
+
 		self.about_dialog.set_name(__appname__)
 		self.about_dialog.set_version(__version__)
 		self.about_dialog.set_comments(_('A fast GTK+ Image Viewer.'))
@@ -2954,7 +2959,8 @@ class Base:
 		try:
 			icon_pixbuf = GdkPixbuf.Pixbuf.new_from_file(icon_path)
 			self.about_dialog.set_logo(icon_pixbuf)
-		except:
+		except IOError:
+			traceback.print_exc()
 			pass
 		self.about_dialog.connect('response', self.close_about)
 		self.about_dialog.connect('delete_event', self.close_about)
@@ -4087,7 +4093,8 @@ class Base:
 				if self.verbose:
 					print _("Preloading: %s") % self.nextimg.name
 		except Exception as e:
-			print (e)
+			if self.verbose:
+				print (e)
 			self.nextimg.unload_pixbuf()
 
 	def preload_prev_image(self, use_existing_image):
@@ -4116,7 +4123,8 @@ class Base:
 				if self.verbose:
 					print _("Preloading: %s") % self.previmg.name
 		except Exception as e:
-			print(e)
+			if self.verbose:
+				print(e)
 			self.previmg.unload_pixbuf()
 
 	def change_cursor(self, type):
@@ -4206,26 +4214,23 @@ class Base:
 				return
 		init_image = os.path.abspath(inputlist[0])
 		if self.valid_image(init_image):
-			try:
-				self.load_new_image2(False, False, True, True, image_name=init_image)
-				# Calling load_new_image2 will reset the following two vars
-				# to 0, so ensure they are -1 again (no images preloaded)
-				self.previmg.unload_pixbuf()
-				self.nextimg.unload_pixbuf()
-				if not self.currimg.animation:
-					self.previmg_width = self.currimg.width
-				else:
-					self.previmg_width = self.currimg.width
-				self.image_loaded = True
-				first_image_loaded_successfully = True
-				first_image_loaded = True
-				if (self.verbose):
-					print _("Quickloaded image ahead of imagelist")
-				if not self.closing_app:
-					while Gtk.events_pending():
-						Gtk.main_iteration()
-			except:
-				oass
+			self.load_new_image2(False, False, True, True, image_name=init_image)
+			# Calling load_new_image2 will reset the following two vars
+			# to 0, so ensure they are -1 again (no images preloaded)
+			self.previmg.unload_pixbuf()
+			self.nextimg.unload_pixbuf()
+			if not self.currimg.animation:
+				self.previmg_width = self.currimg.width
+			else:
+				self.previmg_width = self.currimg.width
+			self.image_loaded = True
+			first_image_loaded_successfully = True
+			first_image_loaded = True
+			if (self.verbose):
+				print _("Quickloaded image ahead of imagelist")
+			if not self.closing_app:
+				while Gtk.events_pending():
+					Gtk.main_iteration()
 
 		self.stop_now = False
 		# If open all images in dir...
@@ -4472,6 +4477,8 @@ class Base:
 				test2 = GdkPixbuf.Pixbuf.new_from_file(file)
 				return True
 			except:
+				if self.verbose:
+					traceback.print_exc()
 				return False
 		else:
 			return True
