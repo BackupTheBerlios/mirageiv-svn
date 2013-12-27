@@ -504,13 +504,11 @@ class Base:
 
 		self.thumblist = Gtk.ListStore(GdkPixbuf.Pixbuf)
 		self.thumbpane = Gtk.TreeView(self.thumblist)
-		self.thumbcolumn = Gtk.TreeViewColumn(None)
 		self.thumbcell = Gtk.CellRendererPixbuf()
-		self.thumbcolumn.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
+		thumbcolumn = Gtk.TreeViewColumn("thumbnail", self.thumbcell,pixbuf=0)
+		thumbcolumn.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
+		self.thumbpane.append_column(thumbcolumn)
 		self.thumbpane_set_size()
-		self.thumbpane.append_column(self.thumbcolumn)
-		self.thumbcolumn.pack_start(self.thumbcell, True)
-		self.thumbcolumn.set_attributes(self.thumbcell, pixbuf=0)
 		self.thumbpane.get_selection().set_mode(Gtk.SelectionMode.SINGLE)
 		self.thumbpane.set_headers_visible(False)
 		self.thumbpane.set_property('can-focus', False)
@@ -822,7 +820,7 @@ class Base:
 			if imgnum >= len(self.image_list):
 				break
 			self.thumbpane_set_image(self.image_list[imgnum], imgnum)
-			curr_coord += self.thumbpane.get_background_area(Gtk.TreePath.new_from_string(str(imgnum)),self.thumbcolumn).height
+			curr_coord += self.thumbpane.get_background_area(Gtk.TreePath.new_from_string(str(imgnum)),self.thumbpane.get_column(0)).height
 			if force_upto_imgnum == imgnum:
 				# Verify that the user hasn't switched images while we're loading thumbnails:
 				if force_upto_imgnum == self.curr_img_in_list:
@@ -935,7 +933,8 @@ class Base:
 			self.thumbpane.get_selection().handler_unblock(self.thumb_sel_handler)
 
 	def thumbpane_set_size(self):
-		self.thumbcolumn.set_fixed_width(self.thumbpane_get_size())
+		self.thumbpane.get_column(0).set_fixed_width(self.thumbpane_get_size())
+		self.thumbpane.get_column(0).set_min_width(self.thumbpane_get_size())
 		self.window_resized(None, self.window.get_allocation(), True)
 
 	def thumbpane_get_size(self):
