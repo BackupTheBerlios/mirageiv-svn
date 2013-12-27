@@ -226,7 +226,6 @@ class Base:
 		self.thumbpane_bottom_coord_loaded = 0
 		self.no_sort = False
 
-		print iargs
 		if iargs.recursive:
 			self.recursive = iargs.recursive
 		if iargs.verbose:
