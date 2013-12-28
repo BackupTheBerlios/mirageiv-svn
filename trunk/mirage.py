@@ -36,7 +36,7 @@ from fractions import Fraction
 import json
 import argparse
 import traceback
-
+from pprint import pprint as pp
 gettext.install("mirage", unicode=1)
 
 try:
@@ -3376,6 +3376,7 @@ class Base:
 		self.update_rectangle = False
 		self.rect = None
 		image.window = image.get_property('window')
+		self.c_ctx = image.window.cairo_create()
 		response = dialog.run()
 		if response == Gtk.ResponseType.ACCEPT:
 			dialog.destroy()
@@ -3411,20 +3412,22 @@ class Base:
 		self.drawing_crop_rectangle = False
 
 	def crop_image_expose_cb(self, image, event, pixbuf, width, height):
-		image.window.draw_pixbuf(None, pixbuf, 0, 0, 0, 0, width, height)
+		Gdk.cairo_set_source_pixbuf(event,pixbuf, 0, 0)
+		event.paint()
 
 	def crop_image_mouse_moved(self, widget, event, image, x2, y2, x, y, width, height, image_width, image_height, width_adj, height_adj):
+		c = self.c_ctx
+		
 		if event != None:
 			x2 = event.x
 			y2 = event.y
 			state = event.get_state()
-			#x2, y2, state = event.window.get_pointer()
 		if self.drawing_crop_rectangle:
 			if self.crop_rectangle != None or self.update_rectangle:
-				gc = image.window.new_gc(function=Gdk.INVERT)
-				if self.rect != None:
-					# Get rid of the previous drawn rectangle:
-					image.window.draw_rectangle(gc, False, self.rect[0], self.rect[1], self.rect[2], self.rect[3])
+				#gc = image.window.new_gc(function=Gdk.INVERT)
+				#if self.rect != None:
+				#	# Get rid of the previous drawn rectangle:
+				#	image.window.draw_rectangle(gc, False, self.rect[0], self.rect[1], self.rect[2], self.rect[3])
 				self.rect = [0, 0, 0, 0]
 				if self.crop_rectangle[0] > x2:
 					self.rect[0] = x2
@@ -3438,7 +3441,7 @@ class Base:
 				else:
 					self.rect[1] = self.crop_rectangle[1]
 					self.rect[3] = y2-self.crop_rectangle[1]
-				image.window.draw_rectangle(gc, False, self.rect[0], self.rect[1], self.rect[2], self.rect[3])
+				#image.window.draw_rectangle(gc, False, self.rect[0], self.rect[1], self.rect[2], self.rect[3])
 				# Convert the rectangle coordinates of the current image
 				# to coordinates of pixbuf_original
 				if self.rect[0] < 0:
@@ -3475,23 +3478,19 @@ class Base:
 	def crop_image_button_press(self, widget, event, image):
 		x = event.x
 		y = event.y
-		state = event.get_state()
-		#x, y, state = event.window.get_pointer()
-		if (state & Gdk.ModifierType.BUTTON1_MASK):
+		if (event.type == Gdk.EventType.BUTTON_PRESS and event.button == Gdk.BUTTON_PRIMARY):
 			self.drawing_crop_rectangle = True
 			self.crop_rectangle = [x, y]
-			gc = image.window.new_gc(function=Gdk.INVERT)
+			#gc = image.window.new_gc(function=Gdk.INVERT)
 			if self.rect != None:
 				# Get rid of the previous drawn rectangle:
-				image.window.draw_rectangle(gc, False, self.rect[0], self.rect[1], self.rect[2], self.rect[3])
+				#image.window.draw_rectangle(gc, False, self.rect[0], self.rect[1], self.rect[2], self.rect[3])
 				self.rect = None
 
 	def crop_image_button_release(self, widget, event):
 		x = event.x
 		y = event.y
-		state = event.get_state()
-		#x, y, state = event.window.get_pointer()
-		if not (state & Gdk.ModifierType.BUTTON1_MASK):
+		if (event.type == Gdk.EventType.BUTTON_RELEASE and event.button == Gdk.BUTTON_PRIMARY):
 			self.drawing_crop_rectangle = False
 
 	def saturation(self, action):
