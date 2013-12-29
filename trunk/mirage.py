@@ -3001,19 +3001,26 @@ class Base:
 		return True
 
 	def mousewheel_scrolled(self, widget, event):
-		if event.type == Gdk.SCROLL:
+		if event.type == Gdk.EventType.SCROLL:
+			direction = ""
+			if event.direction == Gdk.ScrollDirection.SMOOTH:
+				direction = event.get_scroll_deltas()[2]
+				if direction < 0:
+					direction = "up"
+				elif direction > 0:
+					direction = "down"
 			# Zooming of the image by Ctrl-mousewheel
 			if event.get_state() & Gdk.ModifierType.CONTROL_MASK:
-				if event.direction == Gdk.ScrollDirection.UP:
+				if event.direction == Gdk.ScrollDirection.UP or direction == "up":
 					self.zoom_in(None)
-				elif event.direction == Gdk.ScrollDirection.DOWN:
+				elif event.direction == Gdk.ScrollDirection.DOWN  or direction == "down":
 					self.zoom_out(None)
 				return True
 			# Navigation of images with mousewheel:
 			else:
-				if event.direction == Gdk.ScrollDirection.UP:
+				if event.direction == Gdk.ScrollDirection.UP or direction == "up":
 					self.goto_prev_image(None)
-				elif event.direction == Gdk.ScrollDirection.DOWN:
+				elif event.direction == Gdk.ScrollDirection.DOWN or direction == "down":
 					self.goto_next_image(None)
 				return True
 
