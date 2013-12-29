@@ -3297,7 +3297,7 @@ class Base:
 		cropimage.set_from_stock(Gtk.STOCK_OK, Gtk.IconSize.BUTTON)
 		cropbutton.set_image(cropimage)
 		image = Gtk.DrawingArea()
-		crop_pixbuf, image_width, image_height = self.get_pixbuf_of_size(self.currimg.pixbuf_original, 400, self.zoom_quality)
+		self.crop_pixbuf, image_width, image_height = self.get_pixbuf_of_size(self.currimg.pixbuf_original, 400, self.zoom_quality)
 		image.set_size_request(image_width, image_height)
 		hbox = Gtk.HBox()
 		hbox.pack_start(Gtk.Label(), True, True, 0)
@@ -3362,7 +3362,7 @@ class Base:
 		dialog.set_resizable(False)
 		dialog.vbox.show_all()
 		image.set_events(Gdk.EventMask.POINTER_MOTION_MASK | Gdk.EventMask.POINTER_MOTION_HINT_MASK | Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.BUTTON_MOTION_MASK | Gdk.EventMask.BUTTON_RELEASE_MASK)
-		image.connect("draw", self.crop_image_expose_cb, crop_pixbuf, image_width, image_height)
+		image.connect("draw", self.crop_image_expose_cb, image_width, image_height)
 		image.connect("motion_notify_event", self.crop_image_mouse_moved, image, 0, 0, x, y, width, height, image_width, image_height, width_adj, height_adj)
 		image.connect("button_press_event", self.crop_image_button_press, image)
 		image.connect("button_release_event", self.crop_image_button_release)
@@ -3388,6 +3388,7 @@ class Base:
 				self.image_modified = True
 		else:
 			dialog.destroy()
+		self.crop_pixbuf = None
 
 	def crop_value_changed(self, currspinbox, x, y, width, height, width_adj, height_adj, image_width, image_height, image, type):
 		if type == 0:   # X
@@ -3411,19 +3412,18 @@ class Base:
 		self.update_rectangle = False
 		self.drawing_crop_rectangle = False
 
-	def crop_image_expose_cb(self, image, event, pixbuf, width, height):
-		Gdk.cairo_set_source_pixbuf(event,pixbuf, 0, 0)
+	def crop_image_expose_cb(self, image, event, width, height):
+		Gdk.cairo_set_source_pixbuf(event,self.crop_pixbuf, 0, 0)
 		event.paint()
 
 	def crop_image_mouse_moved(self, widget, event, image, x2, y2, x, y, width, height, image_width, image_height, width_adj, height_adj):
-		c = self.c_ctx
-		
 		if event != None:
 			x2 = event.x
 			y2 = event.y
 			state = event.get_state()
 		if self.drawing_crop_rectangle:
 			if self.crop_rectangle != None or self.update_rectangle:
+				ctx = image.window.cairo_create()
 				#gc = image.window.new_gc(function=Gdk.INVERT)
 				#if self.rect != None:
 				#	# Get rid of the previous drawn rectangle:
@@ -3442,6 +3442,13 @@ class Base:
 					self.rect[1] = self.crop_rectangle[1]
 					self.rect[3] = y2-self.crop_rectangle[1]
 				#image.window.draw_rectangle(gc, False, self.rect[0], self.rect[1], self.rect[2], self.rect[3])
+				Gdk.cairo_set_source_pixbuf(ctx, self.crop_pixbuf,0,0)
+				ctx.paint()
+				ctx.set_source_rgb(0.0,0.0,0.0)
+				ctx.set_line_width(1.0)
+				ctx.rectangle(self.rect[0], self.rect[1], self.rect[2], self.rect[3])
+				ctx.stroke()
+				
 				# Convert the rectangle coordinates of the current image
 				# to coordinates of pixbuf_original
 				if self.rect[0] < 0:
